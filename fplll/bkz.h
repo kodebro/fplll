@@ -75,14 +75,14 @@ public:
      ``_ex`` variant is exception handling.
   */
 
-  bool svp_reduction(int kappa, int block_size, const BKZParam &param, bool dual = false);
+  bool svp_reduction(int kappa, int block_size, const BKZParam &param, bool dual = false, bool top_level = true);
 
   bool svp_reduction_ex(int kappa, int block_size, const BKZParam &param, bool &clean,
                         bool dual = false)
   {
     try
     {
-      clean = svp_reduction(kappa, block_size, param, dual);
+      clean = svp_reduction(kappa, block_size, param, dual, true);
       return true;
     }
     catch (RedStatus &e)
@@ -91,14 +91,14 @@ public:
     }
   }
 
-  bool tour(const int loop, int &kappa_max, const BKZParam &param, int min_row, int max_row);
+  bool tour(const int loop, int &kappa_max, const BKZParam &param, int min_row, int max_row, bool top_level);
 
   bool tour_ex(const int loop, int &kappa_max, const BKZParam &param, int min_row, int max_row,
                bool &clean)
   {
     try
     {
-      clean = tour(loop, kappa_max, param, min_row, max_row);
+      clean = tour(loop, kappa_max, param, min_row, max_row, true);
       return true;
     }
     catch (RedStatus &e)
@@ -122,13 +122,13 @@ public:
     }
   }
 
-  bool hkz(int &kappa_max, const BKZParam &param, int min_row, int max_row);
+  bool hkz(int &kappa_max, const BKZParam &param, int min_row, int max_row, bool in_bkz);
 
   bool hkz_ex(int &kappa_max, const BKZParam &param, int min_row, int max_row, bool &clean)
   {
     try
     {
-      clean = hkz(kappa_max, param, min_row, max_row);
+      clean = hkz(kappa_max, param, min_row, max_row, false);
       return true;
     }
     catch (RedStatus &e)
@@ -190,7 +190,7 @@ private:
 
   const Pruning &get_pruning(int kappa, int block_size, const BKZParam &par) const;
 
-  bool trunc_tour(int &kappa_max, const BKZParam &param, int min_row, int max_row);
+  bool trunc_tour(int &kappa_max, const BKZParam &param, int min_row, int max_row, bool top_level);
   bool trunc_dtour(const BKZParam &param, int min_row, int max_row);
 
   const BKZParam &param;

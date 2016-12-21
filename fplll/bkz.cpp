@@ -102,8 +102,8 @@ bool BKZReduction<FT>::svp_preprocessing(int kappa, int block_size, const BKZPar
 
   FPLLL_DEBUG_CHECK(param.strategies.size() > block_size);
 
-  int lll_start = (param.flags & BKZ_BOUNDED_LLL) ? kappa : 0;
-  if (!lll_obj.lll(lll_start, lll_start, kappa + block_size, 0))
+  int lll_start     = (param.flags & BKZ_BOUNDED_LLL) ? kappa : 0;
+  if (!lll_obj.lll(lll_start, lll_start, kappa + block_size, kappa))
   {
     throw std::runtime_error(RED_STATUS_STR[lll_obj.status]);
   }
@@ -115,7 +115,7 @@ bool BKZReduction<FT>::svp_preprocessing(int kappa, int block_size, const BKZPar
   {
     int dummy_kappa_max = num_rows;
     BKZParam prepar     = BKZParam(*it, param.strategies, LLL_DEF_DELTA, BKZ_GH_BND);
-    clean &= tour(0, dummy_kappa_max, prepar, kappa, kappa + block_size);
+    clean &= tour(0, dummy_kappa_max, prepar, kappa, kappa + block_size, false);
   }
 
   return clean;
@@ -178,7 +178,7 @@ bool BKZReduction<FT>::svp_postprocessing(int kappa, int block_size, const vecto
     }
     m.row_op_end(d, d + 1);
     m.move_row(d, kappa);
-    if (!lll_obj.lll(0, kappa, kappa + 1, 0))
+    if (!lll_obj.lll(0, kappa, kappa + block_size + 1, 0))
       throw lll_obj.status;
     FPLLL_DEBUG_CHECK(m.b[kappa + block_size].is_zero());
     m.move_row(kappa + block_size, d);
@@ -206,7 +206,6 @@ bool BKZReduction<FT>::dsvp_postprocessing(int kappa, int block_size, const vect
       }
     }
   }
-
   // tree based gcd computation on x, performing operations also on b
   int off = 1;
   int k;
@@ -239,7 +238,6 @@ bool BKZReduction<FT>::dsvp_postprocessing(int kappa, int block_size, const vect
     }
     off *= 2;
   }
-
   m.row_op_end(kappa, kappa + d);
   if (!lll_obj.lll(kappa, kappa, kappa + d, 0))
   {
@@ -249,22 +247,24 @@ bool BKZReduction<FT>::dsvp_postprocessing(int kappa, int block_size, const vect
 }
 
 template <class FT>
-bool BKZReduction<FT>::svp_reduction(int kappa, int block_size, const BKZParam &par, bool dual)
+bool BKZReduction<FT>::svp_reduction(int kappa, int block_size, const BKZParam &par, bool dual, bool top_level)
 {
-
   int first = dual ? kappa + block_size - 1 : kappa;
 
-  // ensure we are computing something sensible.
-  // note that the size reduction here is required, since
-  // we're calling this function on unreduced blocks at times
-  // (e.g. in bkz, after the previous block was reduced by a vector
-  // already in the basis). if size reduction is not called,
-  // old_first might be incorrect (e.g. close to 0) and the function
-  // will return an incorrect clean flag
-  if (!lll_obj.size_reduction(0, first + 1, 0))
+  if (top_level)
   {
-    throw std::runtime_error(RED_STATUS_STR[lll_obj.status]);
+    //    cerr << "block_size " << block_size << endl;
+    // ensure we are computing something sensible.
+    // note that the reduction here is required, since
+    // we're calling this function on unreduced blocks at times
+    // (e.g. in bkz, after the previous block was reduced by a vector
+    // already in the basis).
+    if (!lll_obj.lll(0, kappa, kappa+block_size, 0))
+    {
+      throw std::runtime_error(RED_STATUS_STR[lll_obj.status]);
+    }
   }
+  
   FT old_first;
   long old_first_expo;
   old_first = FT(m.get_r_exp(first, first, old_first_expo));
@@ -280,7 +280,7 @@ bool BKZReduction<FT>::svp_reduction(int kappa, int block_size, const BKZParam &
     }
 
     svp_preprocessing(kappa, block_size, par);
-
+    
     long max_dist_expo;
     FT max_dist = m.get_r_exp(first, first, max_dist_expo);
     if (dual)
@@ -332,11 +332,11 @@ bool BKZReduction<FT>::svp_reduction(int kappa, int block_size, const BKZParam &
 
 template <class FT>
 bool BKZReduction<FT>::tour(const int loop, int &kappa_max, const BKZParam &par, int min_row,
-                            int max_row)
+                            int max_row, bool top_level)
 {
   bool clean = true;
-  clean &= trunc_tour(kappa_max, par, min_row, max_row);
-  clean &= hkz(kappa_max, par, max(max_row - par.block_size, 0), max_row);
+  clean &= trunc_tour(kappa_max, par, min_row, max_row, top_level);
+  clean &= hkz(kappa_max, par, max(max_row - par.block_size, 0), max_row, true);
 
   if (par.flags & BKZ_VERBOSE)
   {
@@ -356,19 +356,19 @@ bool BKZReduction<FT>::tour(const int loop, int &kappa_max, const BKZParam &par,
 }
 
 template <class FT>
-bool BKZReduction<FT>::trunc_tour(int &kappa_max, const BKZParam &par, int min_row, int max_row)
+bool BKZReduction<FT>::trunc_tour(int &kappa_max, const BKZParam &par, int min_row, int max_row, bool top_level)
 {
   bool clean     = true;
   int block_size = par.block_size;
   for (int kappa = min_row; kappa < max_row - block_size; ++kappa)
   {
-    clean &= svp_reduction(kappa, block_size, par);
+    clean &= svp_reduction(kappa, block_size, par, false, top_level);
     if ((par.flags & BKZ_VERBOSE) && kappa_max < kappa && clean)
     {
       cerr << "Block [1-" << setw(4) << kappa + 1 << "] BKZ-" << setw(0) << par.block_size
            << " reduced for the first time" << endl;
       kappa_max = kappa;
-    }
+      }
   }
 
   return clean;
@@ -382,26 +382,27 @@ bool BKZReduction<FT>::trunc_dtour(const BKZParam &par, int min_row, int max_row
 
   for (int kappa = max_row - block_size; kappa > min_row; --kappa)
   {
-    clean &= svp_reduction(kappa, block_size, par, true);
+    clean &= svp_reduction(kappa, block_size, par, true, true);
   }
 
   return clean;
 }
 
 template <class FT>
-bool BKZReduction<FT>::hkz(int &kappa_max, const BKZParam &param, int min_row, int max_row)
+bool BKZReduction<FT>::hkz(int &kappa_max, const BKZParam &param, int min_row, int max_row, bool in_bkz)
 {
   bool clean = true;
-  for (int kappa = min_row; kappa < max_row - 1; ++kappa)
+  clean &= svp_reduction(min_row, max_row - min_row, param, false, true);
+  for (int kappa = min_row+1; kappa < max_row - 1; ++kappa)
   {
     int block_size = max_row - kappa;
-    clean &= svp_reduction(kappa, block_size, param);
+    clean &= svp_reduction(kappa, block_size, param, false, !in_bkz);
     if ((param.flags & BKZ_VERBOSE) && kappa_max < kappa && clean)
     {
       cerr << "Block [1-" << setw(4) << kappa + 1 << "] BKZ-" << setw(0) << param.block_size
-           << " reduced for the first time" << endl;
+      << " reduced for the first time" << endl;
       kappa_max = kappa;
-    }
+      }
   }
 
   return clean;
@@ -413,7 +414,7 @@ bool BKZReduction<FT>::sd_tour(const int loop, const BKZParam &par, int min_row,
   int dummy_kappa_max = num_rows;
   bool clean          = true;
   clean &= trunc_dtour(par, min_row, max_row);
-  clean &= trunc_tour(dummy_kappa_max, par, min_row, max_row);
+  clean &= trunc_tour(dummy_kappa_max, par, min_row, max_row, true);
 
   if (par.flags & BKZ_VERBOSE)
   {
@@ -447,14 +448,14 @@ bool BKZReduction<FT>::slide_tour(const int loop, const BKZParam &par, int min_r
     {
       int kappa      = min_row + i * par.block_size;
       int block_size = min(max_row - kappa, par.block_size);
-      clean &= svp_reduction(kappa, block_size, par);
+      clean &= svp_reduction(kappa, block_size, par, false, true);
     }
   } while (!clean);
 
   for (int i = 0; i < p - 1; ++i)
   {
     int kappa = min_row + i * par.block_size + 1;
-    svp_reduction(kappa, par.block_size, par, true);
+    svp_reduction(kappa, par.block_size, par, true, true);
   }
 
   FT new_potential = m.get_slide_potential(min_row, max_row, par.block_size);
@@ -570,7 +571,7 @@ template <class FT> bool BKZReduction<FT>::bkz()
       }
       else
       {
-        clean = tour(i, kappa_max, param, 0, num_rows);
+        clean = tour(i, kappa_max, param, 0, num_rows, true);
       }
     }
     catch (RedStatus &e)
@@ -587,7 +588,7 @@ template <class FT> bool BKZReduction<FT>::bkz()
   {
     try
     {
-      hkz(dummy_kappa_max, param, num_rows - param.block_size, num_rows);
+      hkz(dummy_kappa_max, param, num_rows - param.block_size, num_rows, false);
       print_tour(i, 0, num_rows);
     }
     catch (RedStatus &e)
@@ -606,7 +607,7 @@ template <class FT> bool BKZReduction<FT>::bkz()
       {
         int kappa = j * param.block_size + 1;
         int end   = min(num_rows, kappa + param.block_size - 1);
-        hkz(dummy_kappa_max, param, kappa, end);
+        hkz(dummy_kappa_max, param, kappa, end, false);
       }
       print_tour(i, 0, num_rows);
     }
