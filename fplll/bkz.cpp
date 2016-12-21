@@ -102,7 +102,8 @@ bool BKZReduction<FT>::svp_preprocessing(int kappa, int block_size, const BKZPar
 
   FPLLL_DEBUG_CHECK(param.strategies.size() > block_size);
 
-  int lll_start     = (param.flags & BKZ_BOUNDED_LLL) ? kappa : 0;
+  // int lll_start     = (param.flags & BKZ_BOUNDED_LLL) ? kappa : 0;
+  int lll_start = kappa;
   if (!lll_obj.lll(lll_start, lll_start, kappa + block_size, kappa))
   {
     throw std::runtime_error(RED_STATUS_STR[lll_obj.status]);
@@ -278,9 +279,8 @@ bool BKZReduction<FT>::svp_reduction(int kappa, int block_size, const BKZParam &
     {
       rerandomize_block(kappa + 1, kappa + block_size, par.rerandomization_density);
     }
-
     svp_preprocessing(kappa, block_size, par);
-    
+
     long max_dist_expo;
     FT max_dist = m.get_r_exp(first, first, max_dist_expo);
     if (dual)
@@ -320,10 +320,6 @@ bool BKZReduction<FT>::svp_reduction(int kappa, int block_size, const BKZParam &
     remaining_probability *= (1 - pruning.probability);
   }
 
-  if (!lll_obj.size_reduction(0, first + 1, 0))
-  {
-    throw std::runtime_error(RED_STATUS_STR[lll_obj.status]);
-  }
   long new_first_expo;
   FT new_first = m.get_r_exp(first, first, new_first_expo);
   new_first.mul_2si(new_first, new_first_expo - old_first_expo);
@@ -368,7 +364,7 @@ bool BKZReduction<FT>::trunc_tour(int &kappa_max, const BKZParam &par, int min_r
       cerr << "Block [1-" << setw(4) << kappa + 1 << "] BKZ-" << setw(0) << par.block_size
            << " reduced for the first time" << endl;
       kappa_max = kappa;
-      }
+    }
   }
 
   return clean;
@@ -402,7 +398,7 @@ bool BKZReduction<FT>::hkz(int &kappa_max, const BKZParam &param, int min_row, i
       cerr << "Block [1-" << setw(4) << kappa + 1 << "] BKZ-" << setw(0) << param.block_size
       << " reduced for the first time" << endl;
       kappa_max = kappa;
-      }
+    }
   }
 
   return clean;
