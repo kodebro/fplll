@@ -252,6 +252,8 @@ bool BKZReduction<FT>::svp_reduction(int kappa, int block_size, const BKZParam &
 {
   int first = dual ? kappa + block_size - 1 : kappa;
 
+  if (!lll_obj.size_reduction(0, first + 1, 0))
+    throw std::runtime_error(RED_STATUS_STR[lll_obj.status]);
   if (top_level)
   {
     //    cerr << "block_size " << block_size << endl;
