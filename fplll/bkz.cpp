@@ -266,6 +266,13 @@ bool BKZReduction<FT>::svp_reduction(int kappa, int block_size, const BKZParam &
       throw std::runtime_error(RED_STATUS_STR[lll_obj.status]);
     }
   }
+  else {
+  if (!lll_obj.size_reduction(kappa, kappa+block_size))
+    {
+      throw std::runtime_error(RED_STATUS_STR[lll_obj.status]);
+    }
+  }
+  
   
   FT old_first;
   long old_first_expo;
