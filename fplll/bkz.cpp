@@ -260,7 +260,8 @@ bool BKZReduction<FT>::svp_reduction(int kappa, int block_size, const BKZParam &
     // we're calling this function on unreduced blocks at times
     // (e.g. in bkz, after the previous block was reduced by a vector
     // already in the basis).
-    if (!lll_obj.lll(0, 0, kappa+block_size, 0))
+    //if (!lll_obj.lll(0, 0, kappa+block_size, 0))
+  if (!lll_obj.size_reduction(0, kappa+block_size))
     {
       throw std::runtime_error(RED_STATUS_STR[lll_obj.status]);
     }
@@ -297,13 +298,14 @@ bool BKZReduction<FT>::svp_reduction(int kappa, int block_size, const BKZParam &
     }
 
     const Pruning &pruning = get_pruning(kappa, block_size, par);
-
+    //cerr << " starting enum kappa " << kappa << " bs " << block_size << endl;
+    
     evaluator.solutions.clear();
     Enumeration<FT> enum_obj(m, evaluator);
     enum_obj.enumerate(kappa, kappa + block_size, max_dist, max_dist_expo, vector<FT>(),
                        vector<enumxt>(), pruning.coefficients, dual);
     nodes += enum_obj.get_nodes();
-
+//    cerr << " end enum kappa " << kappa << " bs " << block_size << endl;
     if (!evaluator.empty())
     {
       if (dual)
