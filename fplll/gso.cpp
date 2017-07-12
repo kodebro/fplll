@@ -36,7 +36,7 @@ template <class ZT, class FT> void MatGSO<ZT, FT>::initialize_r_givens_matrix()
     }
     if (r_givens.get_cols() != b.get_cols())
     {
-      throw std::runtime_error("Error: r_givens does net have good dimensions.");
+      throw std::runtime_error("Error: r_givens does not have good dimensions.");
     }
     for (int i = 0; i < d; i++)
     {
@@ -52,28 +52,41 @@ template <class ZT, class FT> void MatGSO<ZT, FT>::givens_rotation(int col_i, in
 {
   // TODO: This maybe can be sped up if we manage to remove some FT 's
   // we might want to have some more 'tmp1';
+  cerr << r_givens(row_k,col_j);
+  cerr << r_givens(row_k,col_i);
+
+  if (r_givens(row_k,col_j) < 0.001) {
+
+    return;
+  }
   FT c, s;
 
   ftmp1.hypot(r_givens(row_k, col_i), r_givens(row_k, col_j));
   c.div(r_givens(row_k, col_i), ftmp1);
   s.div(r_givens(row_k, col_j), ftmp1);
 
+  cerr << c << s << ftmp1;
   for (int k = row_k; k < r_givens.get_rows(); k++)
   {
-    ftmp1 = r_givens(k, col_i);
-    ftmp2 = r_givens(k, col_j);
-    r_givens(k, col_i).mul(ftmp1, c);
+    ftmp1 = r_givens(k, col_i); // aux_i
+    ftmp2 = r_givens(k, col_j); // aux_j
+    r_givens(k, col_i).mul(ftmp1, c); // r_(k,col_i) = c*r_(k,col_i) + s*r_(k,col_j)
     r_givens(k, col_i).addmul(ftmp2, s);
+
+    //r_givens(k, col_j).neg(s);
+    //r_givens(k, col_j).mul(ftmp1, r_givens(k, col_j));
+    //r_givens(k, col_j).addmul(ftmp2, c);
     r_givens(k, col_j).mul(ftmp2, c);
     s.neg(s);
     r_givens(k, col_j).addmul(ftmp1, s);
+    s.neg(s);
   }
   // r_givens(row_k, col_j) = 0;
 }
 
-template <class ZT, class FT> void MatGSO<ZT, FT>::givens_row_reduction(int row_k)
+template <class ZT, class FT> void MatGSO<ZT, FT>::givens_row_reduction(int row_k, int rightmost_nonzero_entry)
 {
-  for (int i = row_k + 1; i < r.get_cols(); i++)
+  for (int i = rightmost_nonzero_entry - 1; i > row_k; i--)
     givens_rotation(i - 1, i, row_k);
 }
 
@@ -105,6 +118,7 @@ template <class ZT, class FT> void MatGSO<ZT, FT>::update_bf(int i)
 
 template <class ZT, class FT> bool MatGSO<ZT, FT>::update_gso_row(int i, int last_j)
 {
+  givens_row_reduction(i, r_givens.get_cols());
   // FPLLL_TRACE_IN("Updating GSO up to (" << i << ", " << last_j << ")");
   // FPLLL_TRACE("n_known_rows=" << n_known_rows << " n_source_rows=" << n_source_rows);
   if (i >= n_known_rows)
@@ -135,6 +149,7 @@ template <class ZT, class FT> bool MatGSO<ZT, FT>::update_gso_row(int i, int las
 
   gso_valid_cols[i] = j;  // = max(0, gso_valid_cols[i], last_j + 1)
   // FPLLL_TRACE_OUT("End of GSO update");
+
 
   return true;
 }

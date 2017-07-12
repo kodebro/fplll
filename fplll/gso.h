@@ -65,7 +65,7 @@ public:
   using MatGSOInterface<ZT, FT>::remove_last_row;
   using MatGSOInterface<ZT, FT>::print_mu_r_g;
   using MatGSOInterface<ZT, FT>::update_gso;
-  using MatGSOInterface<ZT, FT>::update_gso_row;
+  //using MatGSOInterface<ZT, FT>::update_gso_row;
   using MatGSOInterface<ZT, FT>::row_addmul;
   using MatGSOInterface<ZT, FT>::symmetrize_g;
   using MatGSOInterface<ZT, FT>::ftmp1;
@@ -156,7 +156,7 @@ public:
   // For givens rotations
   void initialize_r_givens_matrix();
   void givens_rotation(int col_i, int col_j, int row_k);
-  void givens_row_reduction(int row_k);
+  void givens_row_reduction(int row_k, int rightmost_nonzero_entry );
 
   /**
    * Updates r(i, j) and mu(i, j) if needed for all j in [0, last_j].
@@ -164,8 +164,11 @@ public:
    * [0, min(last_j, i - 1)] must be valid.
    * If i=n_known_rows, n_known_rows is increased by one.
    */
-  bool update_gso_row(int i, int last_j);
+  virtual bool update_gso_row(int i, int last_j) final;
 
+  inline bool update_gso_row(int i);
+
+  inline bool update_gso();
   /**
    * b[i] := b[i] + x * b[j].
    * After one or several calls to row_addmul, row_op_end must be called.
@@ -297,6 +300,21 @@ template <class ZT, class FT> inline void MatGSO<ZT, FT>::create_rows(int n_new_
   size_increased();
   if (n_known_rows == old_d)
     discover_all_rows();
+}
+
+template <class ZT, class FT> inline bool MatGSO<ZT, FT>::update_gso_row(int i)
+{
+  return update_gso_row(i, i);
+}
+
+template <class ZT, class FT> inline bool MatGSO<ZT, FT>::update_gso()
+{
+  for (int i = 0; i < d; i++)
+  {
+    if (!update_gso_row(i))
+      return false;
+  }
+  return true;
 }
 
 template <class ZT, class FT> inline void MatGSO<ZT, FT>::remove_last_rows(int n_removed_rows)

@@ -127,8 +127,10 @@ void MatGSOInterface<ZT, FT>::row_addmul_we(int i, int j, const FT &x, long expo
 }
 */
 
+
 template <class ZT, class FT> bool MatGSOInterface<ZT, FT>::update_gso_row(int i, int last_j)
 {
+  cerr << "I am at the interface";
   // FPLLL_TRACE_IN("Updating GSO up to (" << i << ", " << last_j << ")");
   // FPLLL_TRACE("n_known_rows=" << n_known_rows << " n_source_rows=" << n_source_rows);
   if (i >= n_known_rows)
@@ -161,6 +163,7 @@ template <class ZT, class FT> bool MatGSOInterface<ZT, FT>::update_gso_row(int i
   // FPLLL_TRACE_OUT("End of GSO update");
   return true;
 }
+
 
 template <class ZT, class FT> void MatGSOInterface<ZT, FT>::lock_cols() { cols_locked = true; }
 
