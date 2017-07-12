@@ -68,8 +68,8 @@ public:
   using MatGSOInterface<ZT, FT>::update_gso_row;
   using MatGSOInterface<ZT, FT>::row_addmul;
   using MatGSOInterface<ZT, FT>::symmetrize_g;
-  using MatGSOInterface<ZT,FT>::ftmp1;
-  using MatGSOInterface<ZT,FT>::ftmp2;
+  using MatGSOInterface<ZT, FT>::ftmp1;
+  using MatGSOInterface<ZT, FT>::ftmp2;
 
 #ifdef DEBUG
   /* Used only in debug mode. */
@@ -141,7 +141,6 @@ public:
    */
   Matrix<ZT> g;
   Matrix<FT> r_givens;
-
 
   virtual inline long get_max_exp_of_b();
   virtual inline bool b_row_is_zero(int i);

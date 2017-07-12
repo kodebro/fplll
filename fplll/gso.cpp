@@ -25,20 +25,28 @@ template <class ZT, class FT> void MatGSO<ZT, FT>::initialize_r_givens_matrix()
 {
   if (enable_row_expo)
   {
-  	throw std::runtime_error("Error: givens rotations are not yet implemented for enable_row_expo is true.");
+    // throw std::runtime_error("Error: givens rotations are not yet implemented for enable_row_expo
+    // is true.");
   }
   else
   {
-  	for (int i = 0; i < b.get_rows(); i++)
-  	{
-    	for (int j = 0; j < b.get_cols(); j++)
-    	{
-      	r_givens(i, j).set_z(b(i, j));
-    	}
+    if (r_givens.get_rows() != d)
+    {
+      throw std::runtime_error("Error: r_givens does not have good dimensions.");
     }
-  }	
+    if (r_givens.get_cols() != b.get_cols())
+    {
+      throw std::runtime_error("Error: r_givens does net have good dimensions.");
+    }
+    for (int i = 0; i < d; i++)
+    {
+      for (int j = 0; j < r_givens.get_cols(); j++)
+      {
+        r_givens(i, j).set_z(b(i, j));
+      }
+    }
+  }
 }
-
 
 template <class ZT, class FT> void MatGSO<ZT, FT>::update_bf(int i)
 {
@@ -99,14 +107,8 @@ template <class ZT, class FT> bool MatGSO<ZT, FT>::update_gso_row(int i, int las
   gso_valid_cols[i] = j;  // = max(0, gso_valid_cols[i], last_j + 1)
   // FPLLL_TRACE_OUT("End of GSO update");
 
-
-
-
-
-
   return true;
 }
-
 
 template <class ZT, class FT> void MatGSO<ZT, FT>::invalidate_gram_row(int i)
 {
@@ -444,6 +446,7 @@ template <class ZT, class FT> void MatGSO<ZT, FT>::size_increased()
     }
     mu.resize(d, d);
     r.resize(d, d);
+    r_givens.resize(d, b.get_cols());
     gso_valid_cols.resize(d);
     init_row_size.resize(d);
     if (enable_row_expo)
