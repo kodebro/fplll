@@ -125,6 +125,7 @@ public:
       gptr = &g;
     }
     size_increased();
+    initialize_r_givens_matrix();
 #ifdef DEBUG
     row_op_first = row_op_last = -1;
 #endif
@@ -139,6 +140,8 @@ public:
    * Integer Gram matrix of the lattice
    */
   Matrix<ZT> g;
+  Matrix<FT> r_givens;
+
 
   virtual inline long get_max_exp_of_b();
   virtual inline bool b_row_is_zero(int i);
@@ -151,6 +154,8 @@ public:
 
   virtual void move_row(int old_r, int new_r);
 
+  // For givens rotations
+  void initialize_r_givens_matrix();
 
   /**
    * Updates r(i, j) and mu(i, j) if needed for all j in [0, last_j].

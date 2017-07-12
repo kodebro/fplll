@@ -21,6 +21,25 @@
 
 FPLLL_BEGIN_NAMESPACE
 
+template <class ZT, class FT> void MatGSO<ZT, FT>::initialize_r_givens_matrix()
+{
+  if (enable_row_expo)
+  {
+  	throw std::runtime_error("Error: givens rotations are not yet implemented for enable_row_expo is true.");
+  }
+  else
+  {
+  	for (int i = 0; i < b.get_rows(); i++)
+  	{
+    	for (int j = 0; j < b.get_cols(); j++)
+    	{
+      	r_givens(i, j).set_z(b(i, j));
+    	}
+    }
+  }	
+}
+
+
 template <class ZT, class FT> void MatGSO<ZT, FT>::update_bf(int i)
 {
   int n = max(n_known_cols, init_row_size[i]);
@@ -79,6 +98,12 @@ template <class ZT, class FT> bool MatGSO<ZT, FT>::update_gso_row(int i, int las
 
   gso_valid_cols[i] = j;  // = max(0, gso_valid_cols[i], last_j + 1)
   // FPLLL_TRACE_OUT("End of GSO update");
+
+
+
+
+
+
   return true;
 }
 
