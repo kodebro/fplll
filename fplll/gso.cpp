@@ -50,28 +50,31 @@ template <class ZT, class FT> void MatGSO<ZT, FT>::initialize_r_givens_matrix()
 
 template <class ZT, class FT> void MatGSO<ZT, FT>::givens_rotation(int col_i, int col_j, int row_k)
 {
-  // TODO: This maybe can be sped up if we manage to remove some FT's
+  // TODO: This maybe can be sped up if we manage to remove some FT 's
+  // we might want to have some more 'tmp1';
   FT c, s;
 
   ftmp1.hypot(r_givens(row_k, col_i), r_givens(row_k, col_j));
   c.div(r_givens(row_k, col_i), ftmp1);
   s.div(r_givens(row_k, col_j), ftmp1);
 
-  for(int k = row_k; k < r_givens.get_rows(); k++)
+  for (int k = row_k; k < r_givens.get_rows(); k++)
   {
     ftmp1 = r_givens(k, col_i);
     ftmp2 = r_givens(k, col_j);
-    r_givens(k, col_i) =  c * ftmp1 + s*ftmp2;
-    r_givens(k, col_j) = -s * ftmp1 + c*ftmp2;
+    r_givens(k, col_i).mul(ftmp1, c);
+    r_givens(k, col_i).addmul(ftmp2, s);
+    r_givens(k, col_j).mul(ftmp2, c);
+    s.neg(s);
+    r_givens(k, col_j).addmul(ftmp1, s);
   }
-  r_givens(row_k, col_j) = 0;
+  // r_givens(row_k, col_j) = 0;
 }
-
 
 template <class ZT, class FT> void MatGSO<ZT, FT>::givens_row_reduction(int row_k)
 {
-  for(int i = row_k+1; i < r.get_cols(); i++)
-    r_givens.givens_rotation(i-1, i, row_k);
+  for (int i = row_k + 1; i < r.get_cols(); i++)
+    givens_rotation(i - 1, i, row_k);
 }
 
 template <class ZT, class FT> void MatGSO<ZT, FT>::update_bf(int i)

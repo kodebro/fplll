@@ -155,6 +155,8 @@ public:
 
   // For givens rotations
   void initialize_r_givens_matrix();
+  void givens_rotation(int col_i, int col_j, int row_k);
+  void givens_row_reduction(int row_k);
 
   /**
    * Updates r(i, j) and mu(i, j) if needed for all j in [0, last_j].
