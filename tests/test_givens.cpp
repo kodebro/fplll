@@ -105,8 +105,23 @@ template <class ZT, class FT> bool mu_givens_and_mu_are_equal(MatGSO<ZT, FT> M, 
 {
   Matrix<FT> mu1  = M.get_mu_matrix();
   Matrix<FT> mu2 = M.mu_givens;
-  //mu2.print(cerr);
-  //mu1.print(cerr);
+  Matrix<FT> r1  = M.get_r_matrix();
+  Matrix<FT> r2 = M.r_givens;  
+  cerr << "r matrices:\n"; 
+  cerr << "(givens)\n"; 
+  r2.print(cerr);
+  cerr << endl << endl;
+  cerr << "(normal)\n";   
+  r1.print(cerr);  
+  cerr << endl << endl;
+  cerr << "mu matrices:\n";
+  cerr << "(givens)\n";   
+  mu2.print(cerr);
+  cerr << endl << endl; 
+  cerr << "(normal)\n";    
+  mu1.print(cerr);
+  cerr << endl << endl;
+  cerr << "============================\n";  
   Matrix<FT> diff = matrix_difference<ZT, FT>(mu1, mu2);
 
   FT max_entry = 0.0;

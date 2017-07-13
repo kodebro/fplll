@@ -98,10 +98,35 @@ template <class ZT, class FT> void MatGSO<ZT, FT>::givens_rotation(int col_i, in
 
 template <class ZT, class FT> void MatGSO<ZT, FT>::givens_row_reduction(int row_k, int rightmost_nonzero_entry)
 {
-  for (int i = rightmost_nonzero_entry - 1; i > row_k; i--)
+  for (int i = rightmost_nonzero_entry; i > row_k; i--)
     givens_rotation(i - 1, i, row_k);
+
+
+
   for (int i = row_k; i < mu_givens.get_rows(); i++)
     mu_givens(i,row_k).div(r_givens(i,row_k),r_givens(row_k,row_k));
+
+  ftmp1 = r_givens(row_k,row_k);
+  for (int i = row_k; i < r_givens.get_rows(); i++)
+    r_givens(i, row_k).mul(ftmp1, r_givens(i, row_k));
+
+}
+
+template <class ZT, class FT> void MatGSO<ZT, FT>::clean_mu()
+{
+  if ((mu.get_rows() != mu.get_cols()) || (mu_givens.get_rows() != mu_givens.get_cols()) || (mu_givens.get_rows() != mu.get_rows()))
+  {
+    throw std::runtime_error("Error: mu is not square");
+  }
+  for(int i = 0; i < mu.get_rows(); i++) {
+    mu(i,i) = 1.0;
+    mu_givens(i,i) = 1.0;
+    for(int j = i + 1; j < mu.get_cols(); j++) {
+      mu(i,j) = 0.0;
+      mu_givens(i,j) = 0.0;      
+    }
+  }
+
 }
 
 template <class ZT, class FT> void MatGSO<ZT, FT>::update_bf(int i)
@@ -132,7 +157,7 @@ template <class ZT, class FT> void MatGSO<ZT, FT>::update_bf(int i)
 
 template <class ZT, class FT> bool MatGSO<ZT, FT>::update_gso_row(int i, int last_j)
 {
-  givens_row_reduction(i, r_givens.get_cols());
+  givens_row_reduction(i, r_givens.get_cols()-1);
   // FPLLL_TRACE_IN("Updating GSO up to (" << i << ", " << last_j << ")");
   // FPLLL_TRACE("n_known_rows=" << n_known_rows << " n_source_rows=" << n_source_rows);
   if (i >= n_known_rows)
@@ -506,6 +531,7 @@ template <class ZT, class FT> void MatGSO<ZT, FT>::size_increased()
     r.resize(d, d);
     r_givens.resize(d, b.get_cols());
     mu_givens.resize(d, b.get_cols());
+    //mu_givens.resize(d,d);
     gso_valid_cols.resize(d);
     init_row_size.resize(d);
     if (enable_row_expo)
