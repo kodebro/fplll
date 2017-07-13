@@ -112,12 +112,13 @@ template <class ZT, class FT> void MatGSO<ZT, FT>::givens_row_reduction(int row_
 
 }
 
+
 template <class ZT, class FT> void MatGSO<ZT, FT>::clean_mu()
 {
-  if ((mu.get_rows() != mu.get_cols()) || (mu_givens.get_rows() != mu_givens.get_cols()) || (mu_givens.get_rows() != mu.get_rows()))
-  {
-    throw std::runtime_error("Error: mu is not square");
-  }
+  //if ((mu.get_rows() != mu.get_cols()) || (mu_givens.get_rows() != mu_givens.get_cols()) || (mu_givens.get_rows() != mu.get_rows()))
+  //{
+  //  throw std::runtime_error("Error: mu is not square");
+  //}
   for(int i = 0; i < mu.get_rows(); i++) {
     mu(i,i) = 1.0;
     mu_givens(i,i) = 1.0;

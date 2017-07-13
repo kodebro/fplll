@@ -106,6 +106,7 @@ template <class ZT, class FT> bool mu_givens_and_mu_are_equal(MatGSO<ZT, FT> M, 
 {
   Matrix<FT> mu1  = M.get_mu_matrix();
   Matrix<FT> mu2 = M.mu_givens;
+  M.clean_mu();
   Matrix<FT> r1  = M.get_r_matrix();
   Matrix<FT> r2 = M.r_givens;  
   cerr << "r matrices:\n"; 
