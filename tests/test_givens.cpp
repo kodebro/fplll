@@ -14,6 +14,7 @@
    along with fplll. If not, see <http://www.gnu.org/licenses/>. */
 
 #include <cstring>
+#include <stdlib.h>     /* srand, rand */
 #include <gso.h>
 #include <gso_gram.h>
 #include <gso_interface.h>
@@ -223,8 +224,76 @@ int test_int_rel(int d, int b, FloatType float_type = FT_DEFAULT, int prec = 0)
   return 0;
 }
 
+void compare_givens_gso_accuracy(int rows, int cols, int max_entry)
+{ 
+  mpfr_set_default_prec (200);
+
+  ZZ_mat<mpz_t> A;
+  A.resize(rows, cols);
+
+  ZZ_mat<mpz_t> U_double;
+  ZZ_mat<mpz_t> UT_double;
+  ZZ_mat<mpz_t> U_mpfr;
+  ZZ_mat<mpz_t> UT_mpfr;
+
+  FP_NR<mpfr_t> ftmp1, ftmp2, ftmp3;
+  FP_NR<mpfr_t> max_diff_gso, max_diff_givens, max_diff_mpfr;
+
+  srand (1);
+  for (int i = 0; i < rows; i++)
+    for (int j = 0; j < rows; j++)
+      A(i, j) = (rand()%(max_entry*2)) - max_entry;
+
+  MatGSO<Z_NR<mpz_t>, FP_NR<double>> M_double(A, U_double, UT_double, 1);
+  M_double.update_gso();
+
+
+  MatGSO<Z_NR<mpz_t>, FP_NR<mpfr_t>> M_mpfr(A, U_mpfr, UT_mpfr, 1);
+  M_mpfr.update_gso();
+
+  max_diff_gso = 0.0;
+  max_diff_givens = 0.0;
+  max_diff_mpfr = 0.0;
+  for(int i = 0; i < rows; i++)
+  {
+    for(int j = 0; j < i; j++)
+    {
+      ftmp1 = M_double.r(i,j).get_data();
+      ftmp2.sub(ftmp1, M_mpfr.r(i,j));
+      ftmp3.abs(ftmp2);
+      
+      if ( ftmp3 > max_diff_gso )
+        max_diff_gso = ftmp3;
+
+
+      ftmp1 = M_double.r_givens(i,j).get_data();
+      ftmp2.sub(ftmp1, M_mpfr.r_givens(i,j));
+      ftmp3.abs(ftmp2);
+      
+      if ( ftmp3 > max_diff_givens )
+        max_diff_givens = ftmp3;
+
+
+      ftmp1 = M_mpfr.r(i,j);
+      ftmp2.sub(ftmp1, M_mpfr.r_givens(i,j));
+      ftmp3.abs(ftmp2);
+      
+      if ( ftmp3 > max_diff_mpfr )
+        max_diff_mpfr = ftmp3;
+    }
+  }
+
+  cerr << "Comparing the accuracy of gso and givens for a matrix of " << rows << " rows and " << cols << "columns." << endl;
+  cerr << "max_diff_gso    = " << max_diff_gso << endl;
+  cerr << "max_diff_givens = " << max_diff_givens << endl;
+  cerr << "max_diff_mpfr   = " << max_diff_mpfr << endl << endl;
+
+}
+
 int main(int /*argc*/, char ** /*argv*/)
 {
+  for (int i = 4; i < 10; i++)
+    compare_givens_gso_accuracy(1<<i, 1<<i, 1000);
 
   int status = 0;
 
