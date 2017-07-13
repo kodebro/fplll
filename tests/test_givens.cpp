@@ -27,6 +27,7 @@ using namespace fplll;
 #define TESTDATADIR ".."
 #endif
 
+/*
 template <class ZT, class FT> Matrix<FT> matrix_relative_difference(Matrix<FT> r1, Matrix<FT> r2)
 {
   Matrix<FT> diff_matrix = Matrix<FT>(r1.get_rows(), r1.get_cols());
@@ -34,12 +35,13 @@ template <class ZT, class FT> Matrix<FT> matrix_relative_difference(Matrix<FT> r
   FT relativation_factor = 0.0;
   for (int i = 0; i < r1.get_rows(); i++)
   {
-    for (int j = 0; j < i; j++)
+    for (int j = 0; j <= i; j++)
     {  // j < i, because r is lower-triangular, and has only 1 on the diagonal.
       //relativation_factor = abs(r1[i][j]) + abs(r2[i][j]);
       //if (relativation_factor.is_zero())
       //{
-       diff_matrix[i][j] = abs(r1[i][j] - r2[i][j]);
+
+       diff_matrix(i,j)= abs(r1(i,j) - r2(i,j)*r2(j,j));
      //}
      // else
       //{
@@ -47,6 +49,9 @@ template <class ZT, class FT> Matrix<FT> matrix_relative_difference(Matrix<FT> r
       //}
     }
   }
+  //cerr << "difference matrix:\n";
+  //diff_matrix.print(cerr);
+  //cerr << endl;
   return diff_matrix;
 }
 
@@ -55,13 +60,16 @@ template <class ZT, class FT> bool r_givens_and_r_are_equal(MatGSO<ZT, FT> M, FT
 {
   Matrix<FT> r1   = M.get_r_matrix();
   Matrix<FT> r2   = M.r_givens;
-  
-  cerr << "R matrix of GSO" << endl;
-  r1.print(cerr);
-  cerr << "\n";
-  cerr << "R matrix of Givens" << endl;
-  r2.print(cerr);
-  cerr << "\n";
+  Matrix<FT> mu1  = M.get_mu_matrix();
+  Matrix<FT> mu2 = M.mu_givens;
+  mu1.print(cerr);
+  mu2.print(cerr);
+  //cerr << "R matrix of GSO" << endl;
+  //r1.print(cerr);
+  //cerr << "\n";
+  //cerr << "R matrix of Givens" << endl;
+  //r2.print(cerr);
+  //cerr << "\n";
   
   Matrix<FT> diff = matrix_relative_difference<ZT, FT>(r1, r2);
 
@@ -69,14 +77,54 @@ template <class ZT, class FT> bool r_givens_and_r_are_equal(MatGSO<ZT, FT> M, FT
   max_entry    = diff.get_max();
   if (max_entry > error)
   {
-    //cerr << "Difference is too big" << endl;
-    //diff.print(cerr);
-    //cerr << endl << endl;
+    cerr << "Difference is too big" << endl;
+    diff.print(cerr);
+    cerr << endl << endl;
 
     return false;
   }
   return true;
+}*/
+
+template <class ZT, class FT> Matrix<FT> matrix_difference(Matrix<FT> mu1, Matrix<FT> mu2)
+{
+  Matrix<FT> diff_matrix = Matrix<FT>(mu1.get_rows(), mu1.get_cols());
+  diff_matrix.fill(0.0);
+  FT relativation_factor = 0.0;
+  for (int i = 0; i < mu1.get_rows(); i++)
+  {
+    for (int j = 0; j < i; j++)
+    { 
+       diff_matrix(i,j)= abs(mu1(i,j) - mu2(i,j));
+    }
+  }
+  return diff_matrix;
 }
+
+template <class ZT, class FT> bool mu_givens_and_mu_are_equal(MatGSO<ZT, FT> M, FT error)
+{
+  Matrix<FT> mu1  = M.get_mu_matrix();
+  Matrix<FT> mu2 = M.mu_givens;
+  //mu2.print(cerr);
+  //mu1.print(cerr);
+  Matrix<FT> diff = matrix_difference<ZT, FT>(mu1, mu2);
+
+  FT max_entry = 0.0;
+  max_entry    = diff.get_max();
+  if (max_entry > error)
+  {
+    cerr << "Difference is too big" << endl;
+    diff.print(cerr);
+    cerr << endl << endl;
+
+    return false;
+  }
+  cerr << "Maximum difference: " << max_entry << endl;
+  return true;
+}
+
+
+
 
 template <class ZT> void read_matrix(ZZ_mat<ZT> &A, const char *input_filename)
 {
@@ -110,9 +158,8 @@ template <class ZT, class FT> int test_givens(ZZ_mat<ZT> &A)
   M.update_gso();
 
   FP_NR<FT> err  = .001;
-  bool retvalue = r_givens_and_r_are_equal(M, err);
-
-  return retvalue;
+  bool retvalue = mu_givens_and_mu_are_equal(M, err);
+  return !retvalue;
 }
 
 template <class ZT, class FT> int test_filename(const char *input_filename)

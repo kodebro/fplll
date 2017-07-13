@@ -23,6 +23,8 @@ FPLLL_BEGIN_NAMESPACE
 
 template <class ZT, class FT> void MatGSO<ZT, FT>::initialize_r_givens_matrix()
 {
+  mu_givens.fill(0.0);
+
   if (enable_row_expo)
   {
     // throw std::runtime_error("Error: givens rotations are not yet implemented for enable_row_expo
@@ -52,42 +54,54 @@ template <class ZT, class FT> void MatGSO<ZT, FT>::givens_rotation(int col_i, in
 {
   // TODO: This maybe can be sped up if we manage to remove some FT 's
   // we might want to have some more 'tmp1';
-  cerr << r_givens(row_k,col_j);
-  cerr << r_givens(row_k,col_i);
 
-  if (r_givens(row_k,col_j) < 0.001) {
 
+  // If the place where we want to introduce
+  // a zero is already zero, we do nothing.
+  if (r_givens(row_k,col_j).is_zero()) {
     return;
   }
-  FT c, s;
 
+  // Computes the 'c' and 's' of the givens, 
+  // by means of the hypot-function,
+  // which hopefully avoids overflow.
+  FT c, s;
   ftmp1.hypot(r_givens(row_k, col_i), r_givens(row_k, col_j));
   c.div(r_givens(row_k, col_i), ftmp1);
   s.div(r_givens(row_k, col_j), ftmp1);
 
-  cerr << c << s << ftmp1;
+
+  // Here we take multiples of columns
+  // -  Remark that we leave alone the first
+  //    row_k - 1 entries of the columns.
+  //    For effectivity this is obviously better,
+  //    but for numerical stability I don't know.
+  // -  Also, we could force the entry that should be
+  //    zero as 'zero'. Now know whether this is good or not.
+  //
+  // -> Answer to both -> Probably no effect on stability.
+
   for (int k = row_k; k < r_givens.get_rows(); k++)
   {
-    ftmp1 = r_givens(k, col_i); // aux_i
-    ftmp2 = r_givens(k, col_j); // aux_j
+    ftmp1 = r_givens(k, col_i); 
+    ftmp2 = r_givens(k, col_j); 
     r_givens(k, col_i).mul(ftmp1, c); // r_(k,col_i) = c*r_(k,col_i) + s*r_(k,col_j)
     r_givens(k, col_i).addmul(ftmp2, s);
 
-    //r_givens(k, col_j).neg(s);
-    //r_givens(k, col_j).mul(ftmp1, r_givens(k, col_j));
-    //r_givens(k, col_j).addmul(ftmp2, c);
-    r_givens(k, col_j).mul(ftmp2, c);
-    s.neg(s);
-    r_givens(k, col_j).addmul(ftmp1, s);
-    s.neg(s);
+    r_givens(k, col_j).neg(s);
+    r_givens(k, col_j).mul(ftmp1, r_givens(k, col_j));
+    r_givens(k, col_j).addmul(ftmp2, c); // r_(k,col_j) = -s*r_(k,col_i) + c*r_(k,col_j)
   }
-  // r_givens(row_k, col_j) = 0;
+  // "Forcing" zero 
+  r_givens(row_k, col_j) = 0.0;
 }
 
 template <class ZT, class FT> void MatGSO<ZT, FT>::givens_row_reduction(int row_k, int rightmost_nonzero_entry)
 {
   for (int i = rightmost_nonzero_entry - 1; i > row_k; i--)
     givens_rotation(i - 1, i, row_k);
+  for (int i = row_k; i < mu_givens.get_rows(); i++)
+    mu_givens(i,row_k).div(r_givens(i,row_k),r_givens(row_k,row_k));
 }
 
 template <class ZT, class FT> void MatGSO<ZT, FT>::update_bf(int i)
@@ -491,6 +505,7 @@ template <class ZT, class FT> void MatGSO<ZT, FT>::size_increased()
     mu.resize(d, d);
     r.resize(d, d);
     r_givens.resize(d, b.get_cols());
+    mu_givens.resize(d, b.get_cols());
     gso_valid_cols.resize(d);
     init_row_size.resize(d);
     if (enable_row_expo)

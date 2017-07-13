@@ -141,6 +141,7 @@ public:
    */
   Matrix<ZT> g;
   Matrix<FT> r_givens;
+  Matrix<FT> mu_givens;
 
   virtual inline long get_max_exp_of_b();
   virtual inline bool b_row_is_zero(int i);
