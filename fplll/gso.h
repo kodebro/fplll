@@ -39,6 +39,8 @@ public:
   using MatGSOInterface<ZT, FT>::enable_transform;
   using MatGSOInterface<ZT, FT>::cols_locked;  // maybe scratch.
   using MatGSOInterface<ZT, FT>::enable_int_gram;
+  using MatGSOInterface<ZT, FT>::enable_givens;
+
   using MatGSOInterface<ZT, FT>::gso_valid_cols;
   using MatGSOInterface<ZT, FT>::enable_inverse_transform;
   using MatGSOInterface<ZT, FT>::u_inv_t;
@@ -64,7 +66,7 @@ public:
 
   using MatGSOInterface<ZT, FT>::remove_last_row;
   using MatGSOInterface<ZT, FT>::print_mu_r_g;
-  using MatGSOInterface<ZT, FT>::update_gso;
+  //using MatGSOInterface<ZT, FT>::update_gso;
   //using MatGSOInterface<ZT, FT>::update_gso_row;
   using MatGSOInterface<ZT, FT>::row_addmul;
   using MatGSOInterface<ZT, FT>::symmetrize_g;
@@ -125,7 +127,10 @@ public:
       gptr = &g;
     }
     size_increased();
-    initialize_r_givens_matrix();
+
+    if (enable_givens) {
+      initialize_l_givens_matrix();
+    }
 #ifdef DEBUG
     row_op_first = row_op_last = -1;
 #endif
@@ -140,6 +145,7 @@ public:
    * Integer Gram matrix of the lattice
    */
   Matrix<ZT> g;
+  Matrix<FT> l_givens;
   Matrix<FT> r_givens;
   Matrix<FT> mu_givens;
 
@@ -155,7 +161,7 @@ public:
   virtual void move_row(int old_r, int new_r);
 
   // For givens rotations
-  void initialize_r_givens_matrix();
+  void initialize_l_givens_matrix();
   void givens_rotation(int col_i, int col_j, int row_k);
   void givens_row_reduction(int row_k, int rightmost_nonzero_entry );
   void clean_mu();

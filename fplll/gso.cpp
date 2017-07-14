@@ -21,7 +21,7 @@
 
 FPLLL_BEGIN_NAMESPACE
 
-template <class ZT, class FT> void MatGSO<ZT, FT>::initialize_r_givens_matrix()
+template <class ZT, class FT> void MatGSO<ZT, FT>::initialize_l_givens_matrix()
 {
   mu_givens.fill(0.0);
 
@@ -32,19 +32,19 @@ template <class ZT, class FT> void MatGSO<ZT, FT>::initialize_r_givens_matrix()
   }
   else
   {
-    if (r_givens.get_rows() != d)
+    if (l_givens.get_rows() != d)
     {
-      throw std::runtime_error("Error: r_givens does not have good dimensions.");
+      throw std::runtime_error("Error: l_givens does not have good dimensions.");
     }
-    if (r_givens.get_cols() != b.get_cols())
+    if (l_givens.get_cols() != b.get_cols())
     {
-      throw std::runtime_error("Error: r_givens does not have good dimensions.");
+      throw std::runtime_error("Error: l_givens does not have good dimensions.");
     }
     for (int i = 0; i < d; i++)
     {
-      for (int j = 0; j < r_givens.get_cols(); j++)
+      for (int j = 0; j < l_givens.get_cols(); j++)
       {
-        r_givens(i, j).set_z(b(i, j));
+        l_givens(i, j).set_z(b(i, j));
       }
     }
   }
@@ -58,7 +58,7 @@ template <class ZT, class FT> void MatGSO<ZT, FT>::givens_rotation(int col_i, in
 
   // If the place where we want to introduce
   // a zero is already zero, we do nothing.
-  if (r_givens(row_k,col_j).is_zero()) {
+  if (l_givens(row_k,col_j).is_zero()) {
     return;
   }
 
@@ -66,9 +66,9 @@ template <class ZT, class FT> void MatGSO<ZT, FT>::givens_rotation(int col_i, in
   // by means of the hypot-function,
   // which hopefully avoids overflow.
   FT c, s;
-  ftmp1.hypot(r_givens(row_k, col_i), r_givens(row_k, col_j));
-  c.div(r_givens(row_k, col_i), ftmp1);
-  s.div(r_givens(row_k, col_j), ftmp1);
+  ftmp1.hypot(l_givens(row_k, col_i), l_givens(row_k, col_j));
+  c.div(l_givens(row_k, col_i), ftmp1);
+  s.div(l_givens(row_k, col_j), ftmp1);
 
 
   // Here we take multiples of columns
@@ -81,35 +81,37 @@ template <class ZT, class FT> void MatGSO<ZT, FT>::givens_rotation(int col_i, in
   //
   // -> Answer to both -> Probably no effect on stability.
 
-  for (int k = row_k; k < r_givens.get_rows(); k++)
+  for (int k = row_k; k < l_givens.get_rows(); k++)
   {
-    ftmp1 = r_givens(k, col_i); 
-    ftmp2 = r_givens(k, col_j); 
-    r_givens(k, col_i).mul(ftmp1, c); // r_(k,col_i) = c*r_(k,col_i) + s*r_(k,col_j)
-    r_givens(k, col_i).addmul(ftmp2, s);
+    ftmp1 = l_givens(k, col_i); 
+    ftmp2 = l_givens(k, col_j); 
+    l_givens(k, col_i).mul(ftmp1, c); // r_(k,col_i) = c*r_(k,col_i) + s*r_(k,col_j)
+    l_givens(k, col_i).addmul(ftmp2, s);
 
-    r_givens(k, col_j).neg(s);
-    r_givens(k, col_j).mul(ftmp1, r_givens(k, col_j));
-    r_givens(k, col_j).addmul(ftmp2, c); // r_(k,col_j) = -s*r_(k,col_i) + c*r_(k,col_j)
+    l_givens(k, col_j).neg(s);
+    l_givens(k, col_j).mul(ftmp1, l_givens(k, col_j));
+    l_givens(k, col_j).addmul(ftmp2, c); // r_(k,col_j) = -s*r_(k,col_i) + c*r_(k,col_j)
   }
   // "Forcing" zero 
-  r_givens(row_k, col_j) = 0.0;
+  l_givens(row_k, col_j) = 0.0;
 }
 
 template <class ZT, class FT> void MatGSO<ZT, FT>::givens_row_reduction(int row_k, int rightmost_nonzero_entry)
 {
+  // - Could be improved by pushing the zero to the rightmost non-zero entry.
+  // - Or, just pushing the zero to the diagonal.
   for (int i = rightmost_nonzero_entry; i > row_k; i--)
     givens_rotation(i - 1, i, row_k);
 
 
 
   for (int i = row_k; i < mu_givens.get_rows(); i++)
-    mu_givens(i,row_k).div(r_givens(i,row_k),r_givens(row_k,row_k));
+    mu_givens(i,row_k).div(l_givens(i,row_k),l_givens(row_k,row_k));
 
-  ftmp1 = r_givens(row_k,row_k);
-  for (int i = row_k; i < r_givens.get_rows(); i++)
-    r_givens(i, row_k).mul(ftmp1, r_givens(i, row_k));
-
+  ftmp1 = l_givens(row_k,row_k);
+  for (int i = row_k; i < l_givens.get_rows(); i++)
+    r(i, row_k).mul(ftmp1, l_givens(i, row_k));
+	
 }
 
 
@@ -158,7 +160,9 @@ template <class ZT, class FT> void MatGSO<ZT, FT>::update_bf(int i)
 
 template <class ZT, class FT> bool MatGSO<ZT, FT>::update_gso_row(int i, int last_j)
 {
-  givens_row_reduction(i, r_givens.get_cols()-1);
+  if (enable_givens) {
+  	givens_row_reduction(i, l_givens.get_cols()-1);
+  } 
   // FPLLL_TRACE_IN("Updating GSO up to (" << i << ", " << last_j << ")");
   // FPLLL_TRACE("n_known_rows=" << n_known_rows << " n_source_rows=" << n_source_rows);
   if (i >= n_known_rows)
@@ -230,29 +234,37 @@ template <class ZT, class FT> void MatGSO<ZT, FT>::discover_row()
 
 template <class ZT, class FT> void MatGSO<ZT, FT>::row_add(int i, int j)
 {
-  b[i].add(b[j], n_known_cols);
-  if (enable_transform)
-  {
-    u[i].add(u[j]);
-    if (enable_inverse_transform)
-      u_inv_t[j].sub(u_inv_t[i]);
-  }
+  if (enable_givens) {
+  	l_givens[i].add(l_givens[j],j+1);
+  } 
+	  b[i].add(b[j], n_known_cols);
+	  if (enable_transform)
+	  {
+	    u[i].add(u[j]);
+	    if (enable_inverse_transform)
+	      u_inv_t[j].sub(u_inv_t[i]);
+	  }
 
-  if (enable_int_gram)
-  {
-    // g(i, i) += 2 * g(i, j) + g(j, j)
-    ztmp1.mul_2si(g(i, j), 1);
-    ztmp1.add(ztmp1, g(j, j));
-    g(i, i).add(g(i, i), ztmp1);
+	  if (enable_int_gram)
+	  {
+	    // g(i, i) += 2 * g(i, j) + g(j, j)
+	    ztmp1.mul_2si(sym_g(i, j), 1);
+	    ztmp1.add(ztmp1, g(j, j));
+	    g(i, i).add(g(i, i), ztmp1);
 
-    for (int k = 0; k < n_known_rows; k++)
-      if (k != i)
-        sym_g(i, k).add(sym_g(i, k), sym_g(j, k));
-  }
+	    for (int k = 0; k < n_known_rows; k++)
+	      if (k != i)
+	        sym_g(i, k).add(sym_g(i, k), sym_g(j, k));
+	  }
+
+  
 }
 
 template <class ZT, class FT> void MatGSO<ZT, FT>::row_sub(int i, int j)
 {
+  if (enable_givens) {
+  	l_givens[i].sub(l_givens[j],j+1);
+  } 	
   b[i].sub(b[j], n_known_cols);
   if (enable_transform)
   {
@@ -264,7 +276,7 @@ template <class ZT, class FT> void MatGSO<ZT, FT>::row_sub(int i, int j)
   if (enable_int_gram)
   {
     // g(i, i) += g(j, j) - 2 * g(i, j)
-    ztmp1.mul_2si(g(i, j), 1);
+    ztmp1.mul_2si(sym_g(i, j), 1);
     ztmp1.sub(g(j, j), ztmp1);
     g(i, i).add(g(i, i), ztmp1);
 
@@ -276,6 +288,13 @@ template <class ZT, class FT> void MatGSO<ZT, FT>::row_sub(int i, int j)
 
 template <class ZT, class FT> void MatGSO<ZT, FT>::row_addmul_si(int i, int j, long x)
 {
+
+  if (enable_givens) {
+  	// TODO addmul_si not possible, because
+  	// l_givens is of type NumVect
+  	// and not of MatrixRow
+  	l_givens[i].addmul(l_givens[j], x, j+1);
+  } 	
   b[i].addmul_si(b[j], x, n_known_cols);
   if (enable_transform)
   {
@@ -288,7 +307,7 @@ template <class ZT, class FT> void MatGSO<ZT, FT>::row_addmul_si(int i, int j, l
   {
     /* g(i, i) += 2 * x * g(i, j) +  x^2 * g(j, j)
       (must be done before updating g(i, j)) */
-    ztmp1.mul_si(g(i, j), x);
+    ztmp1.mul_si(sym_g(i, j), x);
     ztmp1.mul_2si(ztmp1, 1);
     g(i, i).add(g(i, i), ztmp1);
     ztmp1.mul_si(g(j, j), x);
@@ -309,6 +328,11 @@ template <class ZT, class FT> void MatGSO<ZT, FT>::row_addmul_si(int i, int j, l
 template <class ZT, class FT>
 void MatGSO<ZT, FT>::row_addmul_si_2exp(int i, int j, long x, long expo)
 {
+  if (enable_givens) {
+  	// TODO addmul_si_2exp not possible??
+  	l_givens[i].addmul_2exp(l_givens[j], x, expo, j+1, ftmp1);
+  } 	
+
   b[i].addmul_si_2exp(b[j], x, expo, n_known_cols, ztmp1);
   if (enable_transform)
   {
@@ -321,7 +345,7 @@ void MatGSO<ZT, FT>::row_addmul_si_2exp(int i, int j, long x, long expo)
   {
     /* g(i, i) += 2 * (2^e * x) * g(i, j) + 2^(2*e) * x^2 * g(j, j)
       (must be done before updating g(i, j)) */
-    ztmp1.mul_si(g(i, j), x);
+    ztmp1.mul_si(sym_g(i, j), x);
     ztmp1.mul_2si(ztmp1, expo + 1);
     g(i, i).add(g(i, i), ztmp1);
     ztmp1.mul_si(g(j, j), x);
@@ -344,6 +368,11 @@ void MatGSO<ZT, FT>::row_addmul_si_2exp(int i, int j, long x, long expo)
 template <class ZT, class FT>
 void MatGSO<ZT, FT>::row_addmul_2exp(int i, int j, const ZT &x, long expo)
 {
+  if (enable_givens) {
+  	FT tmpx;
+  	tmpx.set_z(x);
+  	l_givens[i].addmul_2exp(l_givens[j], tmpx, expo, j+1, ftmp1);
+  } 		
   b[i].addmul_2exp(b[j], x, expo, n_known_cols, ztmp1);
   if (enable_transform)
   {
@@ -360,7 +389,7 @@ void MatGSO<ZT, FT>::row_addmul_2exp(int i, int j, const ZT &x, long expo)
   {
     /* g(i, i) += 2 * (2^e * x) * g(i, j) + 2^(2*e) * x^2 * g(j, j)
       (must be done before updating g(i, j)) */
-    ztmp1.mul(g(i, j), x);
+    ztmp1.mul(sym_g(i, j), x);
     ztmp1.mul_2si(ztmp1, expo + 1);
     g(i, i).add(g(i, i), ztmp1);
     ztmp1.mul(g(j, j), x);
@@ -385,7 +414,6 @@ template <class ZT, class FT>
 void MatGSO<ZT, FT>::row_addmul_we(int i, int j, const FT &x, long expo_add)
 {
   FPLLL_DEBUG_CHECK(j >= 0 && /* i > j &&*/ i < n_known_rows && j < n_source_rows);
-
   long expo;
   long lx = x.get_si_exp_we(expo, expo_add);
 
@@ -411,7 +439,29 @@ void MatGSO<ZT, FT>::row_addmul_we(int i, int j, const FT &x, long expo_add)
 // In row_swap, i < j
 template <class ZT, class FT> void MatGSO<ZT, FT>::row_swap(int i, int j)
 {
+
   FPLLL_DEBUG_CHECK(!enable_inverse_transform);
+   if (j < i)  
+   {
+   	int k = i;
+   	i = j;
+   	j = k;
+     //throw std::runtime_error("Error: in row_swap, i > j, causing errors in the grammatrix.");
+   }
+
+  if (enable_givens) { 	
+  	l_givens.swap_rows(i,j); // (maybe j+1)
+  	//Stuff to do
+  	givens_row_reduction(i,j);
+  	for(int k = i+1; k < j; k++) {
+  		givens_rotation(k,k+1,k);
+  	}
+  	//for(int k = i; i <= j; i++) {
+  	//	givens_row_reduction(k,j);
+  	//}
+
+  }
+
   b.swap_rows(i, j);
   if (enable_transform)
   {
@@ -420,10 +470,6 @@ template <class ZT, class FT> void MatGSO<ZT, FT>::row_swap(int i, int j)
 
   if (enable_int_gram)
   {
-    if (j < i)  // Leaving this check here?
-    {
-      throw std::runtime_error("Error: in row_swap, i > j, causing errors in the grammatrix.");
-    }
     for (int k = 0; k < i; k++)
       g(i, k).swap(g(j, k));
     for (int k = i + 1; k < j; k++)
@@ -530,9 +576,13 @@ template <class ZT, class FT> void MatGSO<ZT, FT>::size_increased()
     }
     mu.resize(d, d);
     r.resize(d, d);
-    r_givens.resize(d, b.get_cols());
-    mu_givens.resize(d, b.get_cols());
+    if (enable_givens) {
+   		l_givens.resize(d, b.get_cols());
+   		mu_givens.resize(d, b.get_cols());
+   		r_givens.resize(d, b.get_cols());   		
+    }
     //mu_givens.resize(d,d);
+
     gso_valid_cols.resize(d);
     init_row_size.resize(d);
     if (enable_row_expo)

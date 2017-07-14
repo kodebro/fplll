@@ -26,7 +26,7 @@ using namespace fplll;
 #ifndef TESTDATADIR
 #define TESTDATADIR ".."
 #endif
-
+/*
 template <class ZT, class FT> Matrix<FT> matrix_relative_difference(Matrix<FT> r1, Matrix<FT> r2)
 {
   Matrix<FT> diff_matrix = Matrix<FT>(r1.get_rows(), r1.get_cols());
@@ -67,6 +67,48 @@ template <class ZT, class FT> bool rs_are_equal(MatGSO<ZT, FT> M1, MatGSOGram<ZT
   }
   return true;
 }
+*/
+
+template <class ZT, class FT> Matrix<FT> matrix_difference(Matrix<FT> mu1, Matrix<FT> mu2)
+{
+  Matrix<FT> diff_matrix = Matrix<FT>(mu1.get_rows(), mu1.get_cols());
+  diff_matrix.fill(0.0);
+  FT relativation_factor = 0.0;
+  for (int i = 0; i < mu1.get_rows(); i++)
+  {
+    for (int j = 0; j < i; j++)
+    { 
+       diff_matrix(i,j)= abs(mu1(i,j) - mu2(i,j));
+    }
+  }
+  return diff_matrix;
+}
+
+template <class ZT, class FT> bool mus_are_equal(MatGSO<ZT, FT> M1, MatGSOGram<ZT, FT> M2, FT error)
+{
+  Matrix<FT> mu1  = M1.get_mu_matrix();
+  Matrix<FT> mu2 = M2.get_mu_matrix();
+  Matrix<FT> diff = matrix_difference<ZT, FT>(mu1, mu2);
+
+  FT max_entry = 0.0;
+  max_entry    = diff.get_max();
+  if (max_entry > error)
+  {
+    cerr << "Difference is too big:" << endl;
+    //diff.print(cerr);
+    /*cerr << endl << endl;
+    mu1.print(cerr);
+    cerr << endl << endl;
+    mu2.print(cerr);
+    cerr << endl << endl;*/
+
+    return false;
+  }
+  cerr << "Maximum difference: " << max_entry << endl;
+  return true;
+}
+
+
 
 template <class ZT> void read_matrix(ZZ_mat<ZT> &A, const char *input_filename)
 {
@@ -78,15 +120,20 @@ template <class ZT> void read_matrix(ZZ_mat<ZT> &A, const char *input_filename)
   is >> A;
 }
 
-template <class ZT, class FT> int test_ggso(ZZ_mat<ZT> &A)
+template <class ZT, class FT> int test_gso(ZZ_mat<ZT> &A)
 {
   // TEST A
   // Method:
-  // - Apply 'normal' MatGSO to A.
-  // - Extract r-matrix of A
+  // (1) Apply 'normal' MatGSO to A, with floating point gram matrix
+  // -   Extract mu-matrix of A
+  // (2) Apply 'normal' MatGSO to A, with exact gram matrix
+  //     Extract mu-matrix of A
+
   // - Compute G = A^T A.
-  // - Apply gram MatGSO to G.
-  // - Extract r-matrix of G
+  // - Apply GramMatGSO to G.
+  // - Extract mu-matrix of this 
+
+
   // -> The r-matrices should be equal.
 
   // TEST B
@@ -101,17 +148,20 @@ template <class ZT, class FT> int test_ggso(ZZ_mat<ZT> &A)
   ZZ_mat<ZT> U;
   ZZ_mat<ZT> UT;
 
-  MatGSO<Z_NR<ZT>, FP_NR<FT>> Mbuf(A, U, UT, 1);
-  Mbuf.update_gso();
+  MatGSO<Z_NR<ZT>, FP_NR<FT>> Mbuf(A, U, UT, GSO_INT_GRAM);
+  Mbuf.discover_all_rows();
   Matrix<Z_NR<ZT>> G = Mbuf.get_g_matrix();
 
-  MatGSO<Z_NR<ZT>, FP_NR<FT>> M(A, U, UT, 0);
+  MatGSO<Z_NR<ZT>, FP_NR<FT>> M(A, U, UT, GSO_DEFAULT); // with floating point gram matrix
   M.update_gso();
-  MatGSOGram<Z_NR<ZT>, FP_NR<FT>> M2(G, U, UT, 1);
+  ZZ_mat<ZT> A1(A);
+  MatGSO<Z_NR<ZT>, FP_NR<FT>> M2(A1, U, UT, GSO_INT_GRAM); //  with exact gram matrix
   M2.update_gso();
+  MatGSOGram<Z_NR<ZT>, FP_NR<FT>> M3(G, U, UT, GSO_INT_GRAM); // with only a gram matrix, and no basis (GramGSO object)
+  M3.update_gso();
 
   FP_NR<FT> err  = .001;
-  bool retvalue1 = rs_are_equal(M, M2, err);
+  bool retvalue1 = mus_are_equal(M, M3, err) && mus_are_equal(M2, M3, err);
 
   // TEST B
   // ------------------------
@@ -122,21 +172,32 @@ template <class ZT, class FT> int test_ggso(ZZ_mat<ZT> &A)
     int j = rand() % r;
     M.move_row(k, j);
     M2.move_row(k, j);
+    M3.move_row(k, j);
   }
   M.update_gso();
   M2.update_gso();
-  bool retvalue2 = rs_are_equal(M, M2, err);
+  M3.update_gso();
+  bool retvalue2 = mus_are_equal(M, M3, err) && mus_are_equal(M2, M3, err) ;
 
+  M.row_op_begin(0, r);
+  M2.row_op_begin(0, r);
+  M3.row_op_begin(0, r);
   for (int i = 0; i < rand() % 10 + 1; i++)
   {
     int k = rand() % r;
     int j = rand() % r;
     M.row_add(k, j);
     M2.row_add(k, j);
+    M3.row_add(k, j);
   }
+  M.row_op_end(0, r);
+  M2.row_op_end(0, r);
+  M3.row_op_end(0, r);
+
   M.update_gso();
   M2.update_gso();
-  bool retvalue3 = rs_are_equal(M, M2, err);
+  M3.update_gso();
+  bool retvalue3 = mus_are_equal(M, M3, err) && mus_are_equal(M2, M3, err);
 
   return (!retvalue1) * 1 + (!retvalue2) * 2 + (!retvalue3) * 4;
 }
@@ -145,22 +206,22 @@ template <class ZT, class FT> int test_filename(const char *input_filename)
 {
   ZZ_mat<ZT> A;
   read_matrix(A, input_filename);
-  int retvalue = test_ggso<ZT, FT>(A);
+  int retvalue = test_gso<ZT, FT>(A);
   if (retvalue & 1)
   {
     cerr
         << input_filename
-        << " shows different GSO-outputs for grammatrix representation and basis representation.\n";
+        << " shows different GSO-outputs for grammatrix representation, basis representation (fp gram) or basis representation (exact gram).\n";
   }
   if (retvalue & 2)
   {
     cerr << input_filename << " shows different GSO-outputs for grammatrix representation and "
-                              "basis representation after moving rows.\n";
+                              " basis representation (fp gram) or basis representation (exact gram) after moving rows.\n";
   }
   if (retvalue & 4)
   {
     cerr << input_filename << " shows different GSO-outputs for grammatrix representation and "
-                              "basis representation after adding rows.\n";
+                              " basis representation (fp gram) or basis representation (exact gram) after adding rows.\n";
   }
   if (retvalue > 0)
   {
@@ -191,15 +252,35 @@ int test_int_rel(int d, int b, FloatType float_type = FT_DEFAULT, int prec = 0)
   ZZ_mat<ZT> A;
   A.resize(d, d + 1);
   A.gen_intrel(b);
-  int retvalue = test_ggso<ZT, FT>(A);
-  if (retvalue >= 1)
+  int retvalue = test_gso<ZT, FT>(A);
+  if (retvalue & 1)
   {
     cerr
         << "Integer relation matrix with parameters " << d << " and " << b
-        << " shows different GSO-outputs for grammatrix representation and basis representation.\n";
+        << " shows different GSO-outputs for grammatrix representation, basis representation (fp gram) or basis representation (exact gram).\n";
+  }
+  if (retvalue & 2)
+  {
+    cerr
+        << "Integer relation matrix with parameters " << d << " and " << b
+        << " shows different GSO-outputs for grammatrix representation and "
+                              " basis representation (fp gram) or basis representation (exact gram) after moving rows.\n";
+  }
+  if (retvalue & 4)
+  {
+    cerr
+        << "Integer relation matrix with parameters " << d << " and " << b
+         << " shows different GSO-outputs for grammatrix representation and "
+                              " basis representation (fp gram) or basis representation (exact gram) after adding rows.\n";
+  }
+  if (retvalue > 0)
+  {
     return 1;
   }
-  return 0;
+  else
+  {
+    return 0;
+  }
 }
 
 int main(int /*argc*/, char ** /*argv*/)

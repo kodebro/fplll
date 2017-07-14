@@ -106,8 +106,9 @@ template <class ZT, class FT> bool mu_givens_and_mu_are_equal(MatGSO<ZT, FT> M, 
 {
   Matrix<FT> mu1  = M.get_mu_matrix();
   Matrix<FT> mu2 = M.mu_givens;
-  M.clean_mu();
-  Matrix<FT> r1  = M.get_r_matrix();
+  //M.clean_mu();
+  
+  /*Matrix<FT> r1  = M.get_r_matrix();
   Matrix<FT> r2 = M.r_givens;  
   cerr << "r matrices:\n"; 
   cerr << "(givens)\n"; 
@@ -116,6 +117,7 @@ template <class ZT, class FT> bool mu_givens_and_mu_are_equal(MatGSO<ZT, FT> M, 
   cerr << "(normal)\n";   
   r1.print(cerr);  
   cerr << endl << endl;
+  */
   cerr << "mu matrices:\n";
   cerr << "(givens)\n";   
   mu2.print(cerr);
@@ -123,9 +125,10 @@ template <class ZT, class FT> bool mu_givens_and_mu_are_equal(MatGSO<ZT, FT> M, 
   cerr << "(normal)\n";    
   mu1.print(cerr);
   cerr << endl << endl;
-  cerr << "============================\n";  
+  cerr << "============================\n"; 
+  
   Matrix<FT> diff = matrix_difference<ZT, FT>(mu1, mu2);
-
+  
   FT max_entry = 0.0;
   max_entry    = diff.get_max();
   if (max_entry > error)
@@ -167,15 +170,32 @@ template <class ZT, class FT> int test_givens(ZZ_mat<ZT> &A)
   // TEST A
   // ----------------------------
   //int r = A.r;
+  FP_NR<FT> err  = .001;
 
   ZZ_mat<ZT> U;
   ZZ_mat<ZT> UT;
 
-  MatGSO<Z_NR<ZT>, FP_NR<FT>> M(A, U, UT, 1);
+  MatGSO<Z_NR<ZT>, FP_NR<FT>> M(A, U, UT, 1 | 8);
   M.update_gso();
-
-  FP_NR<FT> err  = .001;
   bool retvalue = mu_givens_and_mu_are_equal(M, err);
+  M.row_op_begin(0,A.r);
+  M.row_add(1,0);
+  M.row_op_end(0,A.r);
+  M.update_gso();
+  retvalue &= mu_givens_and_mu_are_equal(M, err);
+
+  M.row_op_begin(0,A.r);
+  M.row_sub(2,1);
+  M.row_op_end(0,A.r);
+  M.update_gso();
+  retvalue &= mu_givens_and_mu_are_equal(M, err);
+
+  M.row_op_begin(0,A.r);
+  M.row_swap(0,2);
+  M.row_op_end(0,A.r);
+  M.update_gso();
+  retvalue &= mu_givens_and_mu_are_equal(M, err);
+
   return !retvalue;
 }
 
@@ -245,11 +265,11 @@ void compare_givens_gso_accuracy(int rows, int cols, int max_entry)
     for (int j = 0; j < rows; j++)
       A(i, j) = (rand()%(max_entry*2)) - max_entry;
 
-  MatGSO<Z_NR<mpz_t>, FP_NR<double>> M_double(A, U_double, UT_double, 1);
+  MatGSO<Z_NR<mpz_t>, FP_NR<double>> M_double(A, U_double, UT_double, 1 | 8);
   M_double.update_gso();
 
 
-  MatGSO<Z_NR<mpz_t>, FP_NR<mpfr_t>> M_mpfr(A, U_mpfr, UT_mpfr, 1);
+  MatGSO<Z_NR<mpz_t>, FP_NR<mpfr_t>> M_mpfr(A, U_mpfr, UT_mpfr, 1 | 8);
   M_mpfr.update_gso();
 
   max_diff_gso = 0.0;
@@ -293,7 +313,7 @@ void compare_givens_gso_accuracy(int rows, int cols, int max_entry)
 
 int main(int /*argc*/, char ** /*argv*/)
 {
-  for (int i = 4; i < 10; i++)
+  for (int i = 4; i < 8; i++)
     compare_givens_gso_accuracy(1<<i, 1<<i, 1000);
 
   int status = 0;
@@ -306,7 +326,7 @@ int main(int /*argc*/, char ** /*argv*/)
   status |= test_filename<mpz_t, double>(TESTDATADIR "/tests/lattices/example_cvp_in_lattice5");
   status |= test_int_rel<mpz_t, double>(50, 20);
   status |= test_int_rel<mpz_t, double>(40, 10);
-
+/*
   status |= test_filename<mpz_t, mpfr_t>(TESTDATADIR "/tests/lattices/example2_in");
   status |= test_filename<mpz_t, mpfr_t>(TESTDATADIR "/tests/lattices/example_cvp_in_lattice");
   status |= test_filename<mpz_t, mpfr_t>(TESTDATADIR "/tests/lattices/example_cvp_in_lattice2");
@@ -359,7 +379,7 @@ int main(int /*argc*/, char ** /*argv*/)
   status |= test_int_rel<mpz_t, dpe_t>(50, 20);
   status |= test_int_rel<mpz_t, dpe_t>(40, 10);
 #endif
-
+*/
   if (status == 0)
   {
     cerr << "All tests passed." << endl;
