@@ -27,7 +27,8 @@ enum MatGSOInterfaceFlags
   GSO_DEFAULT       = 0,
   GSO_INT_GRAM      = 1,
   GSO_ROW_EXPO      = 2,
-  GSO_OP_FORCE_LONG = 4
+  GSO_OP_FORCE_LONG = 4,
+  GSO_GIVENS        = 8
 };
 
 /**
@@ -93,7 +94,7 @@ public:
   virtual ~MatGSOInterface();
 
   MatGSOInterface(Matrix<ZT> &arg_u, Matrix<ZT> &arg_uinv_t, int flags)
-      : enable_int_gram(flags & GSO_INT_GRAM), enable_row_expo(flags & GSO_ROW_EXPO),
+      : enable_int_gram(flags & GSO_INT_GRAM), enable_givens(flags & GSO_GIVENS), enable_row_expo(flags & GSO_ROW_EXPO), 
         enable_transform(arg_u.get_rows() > 0), enable_inverse_transform(arg_uinv_t.get_rows() > 0),
         row_op_force_long(flags & GSO_OP_FORCE_LONG), u(arg_u), u_inv_t(arg_uinv_t),
         n_known_rows(0), n_source_rows(0), n_known_cols(0), cols_locked(false), alloc_dim(0),
@@ -438,6 +439,8 @@ public:
 
   /** Exact computation of dot products (i.e. with type ZT instead of FT) */
   const bool enable_int_gram;
+
+  const bool enable_givens;
 
   /** Normalization of each row of b by a power of 2. */
   const bool enable_row_expo;
