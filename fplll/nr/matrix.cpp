@@ -227,6 +227,31 @@ template <class ZT> inline void ZZ_mat<ZT>::gen_intrel(int bits)
   }
 }
 
+
+template <class ZT> inline void ZZ_mat<ZT>::hilbert_matrix()
+{
+  if (c != r)
+  {
+    FPLLL_ABORT("hilbert_matrix called on an ill-formed matrix");
+    return;
+  }
+  int dim = c;
+  int factorial = 1;
+
+  for (int i = 2; i <= 2*dim; i++) {
+    factorial *=i;
+  }
+
+
+  for (int i = 0; i < r; i++)
+  {
+    for (int j = 0; j < c; j++) {
+      matrix[i][j] = factorial/(i + j + 1);
+    }
+  }
+}
+
+
 template <class ZT> inline void ZZ_mat<ZT>::gen_simdioph(int bits, int bits2)
 {
   if (c != r)

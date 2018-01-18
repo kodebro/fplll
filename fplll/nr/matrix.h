@@ -258,6 +258,10 @@ public:
     for (int i     = 0; i < d; i++)
       matrix[i][i] = 1;
   }
+
+  //** Generates Hilbert matrix * least_common_multiple(denominators)
+  void hilbert_matrix();
+
   /** Generate an augmented matrix of random coefficients for the first column */
   void gen_intrel(int bits);
   /** Generate a matrix with coefficients of the first row and the diagonal */
