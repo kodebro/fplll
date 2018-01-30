@@ -38,8 +38,6 @@ public:
   using MatGSOInterface<ZT, FT>::u;
   using MatGSOInterface<ZT, FT>::enable_transform;
   using MatGSOInterface<ZT, FT>::cols_locked;  // maybe scratch.
-  //using MatGSOInterface<ZT, FT>::enable_int_gram;
-  //using MatGSOInterface<ZT, FT>::enable_givens;
 
   using MatGSOInterface<ZT, FT>::gso_valid_cols;
   using MatGSOInterface<ZT, FT>::enable_inverse_transform;
@@ -289,7 +287,7 @@ template <class ZT, class FT> inline void MatGSOGivens<ZT, FT>::create_rows(int 
       b[i][j] = 0;
     }
   }
-  // Put here something for the givens matrix
+
 
 
   if (enable_transform)
@@ -299,7 +297,7 @@ template <class ZT, class FT> inline void MatGSOGivens<ZT, FT>::create_rows(int 
       for (int j = 0; j < u.get_cols(); j++)
         u[i][j]  = 0;
   }
-  size_increased();
+  size_increased();   // Givens matrix will be appended here
   if (n_known_rows == old_d)
     discover_all_rows();
 }

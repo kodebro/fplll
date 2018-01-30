@@ -27,19 +27,18 @@ template <class ZT, class FT> void MatGSOGivens<ZT, FT>::initialize_l_givens_mat
 
   if (enable_row_expo)
   {
-    // throw std::runtime_error("Error: givens rotations are not yet implemented for enable_row_expo
-    // is true.");
+    throw std::runtime_error("Error: givens rotations are not yet implemented for enable_row_expo is true.");
   }
   else
   {
-    if (l_givens.get_rows() != d)
+    /*if (l_givens.get_rows() != d)
     {
       throw std::runtime_error("Error: l_givens does not have good dimensions.");
     }
     if (l_givens.get_cols() != b.get_cols())
     {
       throw std::runtime_error("Error: l_givens does not have good dimensions.");
-    }
+    }*/
     for (int i = 0; i < d; i++)
     {
       for (int j = 0; j < l_givens.get_cols(); j++)
@@ -49,8 +48,37 @@ template <class ZT, class FT> void MatGSOGivens<ZT, FT>::initialize_l_givens_mat
     }
   }
 }
+
+
 // The givens rotation introduces a zero in place  (k,j) in the matrix, and puts the residue
-// on place (k,i)
+// on place (k,i). Most of the cases, j = i-1
+//              j|i
+//   _________________________
+//  |						  |    
+//  |_________________________|
+//k |__________|x|y|__________|
+//  |						  |
+//  |						  |
+//  |_________________________|
+//
+//        TRAMSFORMS TO
+//              
+//
+//              j|i
+//   _________________________
+//  |		    * *	     	  |    
+//  |___________*_*___________|
+//k |__________|z|0|__________|
+//  |			* *			  |
+//  |		    * *		      |
+//  |-------------------------|
+//
+//  The stars indicate that the values
+//  there can be changed [in linear combinations]. 
+// The rest of  the matrix is fixed.
+// 
+
+
 template <class ZT, class FT> void MatGSOGivens<ZT, FT>::givens_rotation(int col_i, int col_j, int row_k)
 {
   // TODO: This maybe can be sped up if we manage to remove some FT 's
@@ -111,6 +139,34 @@ template <class ZT, class FT> void MatGSOGivens<ZT, FT>::compute_mu_and_r_column
   }
 }
 
+// The givens_row_reduction introduces a zero-sequence from the diagonal of row_k
+// to the 'rightmost_nonzero_entry' column.
+// 
+//              k|        r
+//   _________________________
+//  |						  |    
+//  |_________________________|
+//k |__________|a|b|c|d|e|f|__|
+//  |						  |
+//  |						  |
+//  |_________________________|
+//
+//        TRAMSFORMS TO
+//              
+//
+//              k|        r
+//   _________________________
+//  |			* * * * * *   |    
+//  |_________________________|
+//k |__________|a|0|0|0|0|0|__|
+//  |			* * * * * *   |
+//  |			* * * * * *   |
+//  |-------------------------|
+//
+// The stars indicate that the entries
+// there might be changed into linear
+// combinations of their neighbour-entries.
+// The rest of the matrix is fixed.
 
 template <class ZT, class FT> void MatGSOGivens<ZT, FT>::givens_row_reduction(int row_k, int rightmost_nonzero_entry)
 {
@@ -121,23 +177,12 @@ template <class ZT, class FT> void MatGSOGivens<ZT, FT>::givens_row_reduction(in
 
 
   compute_mu_and_r_column(row_k);
-  
-  /*for (int i = row_k; i < mu.get_rows(); i++)
-    mu(i,row_k).div(l_givens(i,row_k),l_givens(row_k,row_k));
-
-  ftmp1 = l_givens(row_k,row_k);
-  for (int i = row_k; i < l_givens.get_rows(); i++)
-    r(i, row_k).mul(ftmp1, l_givens(i, row_k));
-	*/
 }
 
 
 template <class ZT, class FT> void MatGSOGivens<ZT, FT>::clean_mu()
 {
-  //if ((mu.get_rows() != mu.get_cols()) || (mu_givens.get_rows() != mu_givens.get_cols()) || (mu_givens.get_rows() != mu.get_rows()))
-  //{
-  //  throw std::runtime_error("Error: mu is not square");
-  //}
+
   for(int i = 0; i < mu.get_rows(); i++) {
     mu(i,i) = 1.0;
     for(int j = i + 1; j < mu.get_cols(); j++) {
@@ -167,38 +212,22 @@ template <class ZT, class FT> bool MatGSOGivens<ZT, FT>::update_gso_row(int i, i
   }
   //FPLLL_DEBUG_CHECK(i >= 0 && i < n_known_rows && last_j >= 0 && last_j < n_source_rows);
 
-
+  // TODO, Maybe add some functionality here.
 
   return true;
 }
 
 template <class ZT, class FT> void MatGSOGivens<ZT, FT>::invalidate_gram_row(int i)
 {
-  //for (int j = 0; j <= i; j++)
-  //  gf(i, j).set_nan();
+	// TODO maybe some functionality later.
 }
 
-// Can discover_row be deleted?
+// TODO Can discover_row be deleted?
 template <class ZT, class FT> void MatGSOGivens<ZT, FT>::discover_row()
 {
   FPLLL_DEBUG_CHECK(n_known_rows < d);
-  /* Early reduction (cols_locked=true) is not allowed when enable_int_gram=true,
-     since n_known_cols might be too small to compute all the g(i,j). */
   FPLLL_DEBUG_CHECK(!(cols_locked));
 
-  /*
-  int i = n_known_rows;
-  n_known_rows++;
-  if (!cols_locked)
-  {
-    n_source_rows = n_known_rows;
-    n_known_cols  = max(n_known_cols, init_row_size[i]);
-  }
-
-    invalidate_gram_row(i);
-  
-  gso_valid_cols[i] = 0;
-  */
 }
 
 // Givens ready.
@@ -357,6 +386,8 @@ template <class ZT, class FT> void MatGSOGivens<ZT, FT>::row_addmul_si(int i, in
 
 }
 
+
+// TODO Still needs to be implemented!
 template <class ZT, class FT>
 void MatGSOGivens<ZT, FT>::row_addmul_si_2exp(int i, int j, long x, long expo)
 {
@@ -408,6 +439,8 @@ void MatGSOGivens<ZT, FT>::row_addmul_si_2exp(int i, int j, long x, long expo)
 */
 }
 
+
+// Still needs to be implemented!!
 template <class ZT, class FT>
 void MatGSOGivens<ZT, FT>::row_addmul_2exp(int i, int j, const ZT &x, long expo)
 {
@@ -520,8 +553,6 @@ template <class ZT, class FT> void MatGSOGivens<ZT, FT>::row_swap(int i, int j)
   }
 
 
-
-
   // *****************
   // Givens equivalent
   // *****************
@@ -543,18 +574,6 @@ template <class ZT, class FT> void MatGSOGivens<ZT, FT>::move_row(int old_r, int
   FPLLL_DEBUG_CHECK(!cols_locked);
   if (new_r < old_r)
   {
-    //FPLLL_DEBUG_CHECK(old_r < n_known_rows && !cols_locked);
-    /*for (int i = new_r; i < n_known_rows; i++)
-    {
-      invalidate_gso_row(i, new_r);
-    }
-    rotate(gso_valid_cols.begin() + new_r, gso_valid_cols.begin() + old_r,
-           gso_valid_cols.begin() + old_r + 1);
-    */
-    //mu.rotate_right(new_r, old_r);
-    //r.rotate_right(new_r, old_r);
-
-
 
     b.rotate_right(new_r, old_r);
 
@@ -577,32 +596,10 @@ template <class ZT, class FT> void MatGSOGivens<ZT, FT>::move_row(int old_r, int
     }
     compute_mu_and_r_columns(new_r,old_r);
 
-
-
-
-
-    // Disabled floating point matrices
-    //
-    //  gf.rotate_gram_right(new_r, old_r, n_known_rows);
-    //  bf.rotate_right(new_r, old_r);
-    
-    // Disabled row_expo
-    //if (enable_row_expo)
-    //  rotate(row_expo.begin() + new_r, row_expo.begin() + old_r, row_expo.begin() + old_r + 1);
   }
   else if (new_r > old_r)
   {
 
-  	/*
-    for (int i = old_r; i < n_known_rows; i++)
-    {
-      invalidate_gso_row(i, old_r);
-    }
-    rotate(gso_valid_cols.begin() + old_r, gso_valid_cols.begin() + old_r + 1,
-           gso_valid_cols.begin() + new_r + 1);
-    */
-    //mu.rotate_left(old_r, new_r);
-    //r.rotate_left(old_r, new_r);
 
     b.rotate_left(old_r, new_r);
     if (enable_transform)
@@ -626,70 +623,19 @@ template <class ZT, class FT> void MatGSOGivens<ZT, FT>::move_row(int old_r, int
     }
     compute_mu_and_r_columns(old_r,new_r);
 
-    // Disabled floating point matrices
-    //  if (old_r < n_known_rows - 1)
-    //    gf.rotate_gram_left(old_r, min(new_r, n_known_rows - 1), n_known_rows);
-    //  bf.rotate_left(old_r, new_r);
-
-    // Disabled row-expo
-    //if (enable_row_expo)
-    //  rotate(row_expo.begin() + old_r, row_expo.begin() + old_r + 1, row_expo.begin() + new_r + 1);
-
-
-    // TODO Disabled this, but I don't really know what it is.
-
-    /*
-    if (new_r >= n_known_rows)
-    {
-      rotate(init_row_size.begin() + old_r, init_row_size.begin() + old_r + 1,
-             init_row_size.begin() + new_r + 1);
-      if (old_r < n_known_rows)
-      {
-        n_known_rows--;
-        n_source_rows        = n_known_rows;
-        init_row_size[new_r] = max(b[new_r].size_nz(), 1);
-      }
-    }
-    */
   }
 }
 
 template <class ZT, class FT> void MatGSOGivens<ZT, FT>::size_increased()
 {
-  //int old_d = mu.get_rows();
 
   if (d > alloc_dim)
   {
 
-    //  bf.resize(d, b.get_cols());
-    //  gf.resize(d, d);
       mu.resize(d, b.get_cols());
-   		l_givens.resize(d, b.get_cols());
-   		//mu_givens.resize(d, b.get_cols());
-   		r.resize(d, b.get_cols());   		
-    
-    //mu_givens.resize(d,d);
-
-  /*
-    gso_valid_cols.resize(d);
-    init_row_size.resize(d);
-    if (enable_row_expo)
-    {
-      row_expo.resize(d);
-    }
-    alloc_dim = d;
-    */
+      l_givens.resize(d, b.get_cols());
+   	  r.resize(d, b.get_cols());   		
   }
-
-  /*
-  for (int i = old_d; i < d; i++)
-  {
-    init_row_size[i] = max(b[i].size_nz(), 1);
-
-      bf[i].fill(0);  // update_bf might not copy all the zeros of b[i]
-      update_bf(i);
-  }
-  */
   
 }
 
