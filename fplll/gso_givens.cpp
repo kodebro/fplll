@@ -180,6 +180,7 @@ template <class ZT, class FT> void MatGSOGivens<ZT, FT>::givens_row_reduction(in
 }
 
 
+
 template <class ZT, class FT> void MatGSOGivens<ZT, FT>::clean_mu()
 {
 
@@ -195,8 +196,10 @@ template <class ZT, class FT> void MatGSOGivens<ZT, FT>::clean_mu()
 
 template <class ZT, class FT> void MatGSOGivens<ZT, FT>::update_bf(int i)
 {
-   // Does nothing
-   // Maybe recompute the L-matrix of the givens?
+    for (int j = 0; j < b.get_cols(); j++)
+    {
+      bf(i, j).set_z(b(i, j));
+    }
 }
 
 
@@ -234,9 +237,8 @@ template <class ZT, class FT> void MatGSOGivens<ZT, FT>::discover_row()
 template <class ZT, class FT> void MatGSOGivens<ZT, FT>::row_add(int i, int j)
 {
  
-	  b[i].add(b[j], n_known_cols);
-	  if (enable_transform
-	)  {
+	  b[i].add(b[j], b.get_cols());
+	  if (enable_transform)  {
 	    u[i].add(u[j]);
 	    if (enable_inverse_transform)
 	      u_inv_t[j].sub(u_inv_t[i]);
@@ -266,7 +268,7 @@ template <class ZT, class FT> void MatGSOGivens<ZT, FT>::row_add(int i, int j)
       l_givens[i].add(l_givens[j],j+1);
 
       givens_row_reduction(i,j);
-      for(int k = i+1; k <= j; k++) {
+      for(int k = i+1; k < j; k++) {
         givens_rotation(k,k+1,k);
       }
 
@@ -284,7 +286,7 @@ template <class ZT, class FT> void MatGSOGivens<ZT, FT>::row_add(int i, int j)
 template <class ZT, class FT> void MatGSOGivens<ZT, FT>::row_sub(int i, int j)
 {
 
-  b[i].sub(b[j], n_known_cols);
+  b[i].sub(b[j], b.get_cols());
   if (enable_transform)
   {
     u[i].sub(u[j]);
@@ -315,7 +317,7 @@ template <class ZT, class FT> void MatGSOGivens<ZT, FT>::row_sub(int i, int j)
       l_givens[i].sub(l_givens[j],j+1);
 
       givens_row_reduction(i,j);
-      for(int k = i+1; k <= j; k++) {
+      for(int k = i+1; k < j; k++) {
         givens_rotation(k,k+1,k);
       }
 
@@ -338,7 +340,7 @@ template <class ZT, class FT> void MatGSOGivens<ZT, FT>::row_addmul_si(int i, in
   // and not of MatrixRow
   // Is this well-resolved??
 
-  b[i].addmul_si(b[j], x, n_known_cols);
+  b[i].addmul_si(b[j], x, b.get_cols());
 
   if (enable_transform)
   {
@@ -352,7 +354,7 @@ template <class ZT, class FT> void MatGSOGivens<ZT, FT>::row_addmul_si(int i, in
       // Doing b_i <- b_i + c b_j doesn't affect the 
 
       // TODO Changing to addmul okay?
-      l_givens[i].addmul(l_givens[j],x,j+1);
+      l_givens[i].addmul(l_givens[j],x,j+1); // j+1 really needed!
       // TODO: making this lazy
 
       for(int k = 0; k <= j; k++) {
@@ -369,7 +371,7 @@ template <class ZT, class FT> void MatGSOGivens<ZT, FT>::row_addmul_si(int i, in
       l_givens[i].addmul(l_givens[j],x,j+1);
 
       givens_row_reduction(i,j);
-      for(int k = i+1; k <= j; k++) {
+      for(int k = i+1; k < j; k++) {
         givens_rotation(k,k+1,k);
       }
 
@@ -392,7 +394,7 @@ template <class ZT, class FT>
 void MatGSOGivens<ZT, FT>::row_addmul_si_2exp(int i, int j, long x, long expo)
 {
   throw std::runtime_error("Error: exponents are not yet implemented for givens rotations");
-  b[i].addmul_si_2exp(b[j], x, expo, n_known_cols, ztmp1);
+  b[i].addmul_si_2exp(b[j], x, expo, b.get_cols(), ztmp1);
   if (enable_transform)
   {
     u[i].addmul_si_2exp(u[j], x, expo, ztmp1);
@@ -445,7 +447,7 @@ template <class ZT, class FT>
 void MatGSOGivens<ZT, FT>::row_addmul_2exp(int i, int j, const ZT &x, long expo)
 {
   throw std::runtime_error("Error: exponents are not yet implemented for givens rotations");
-  b[i].addmul_2exp(b[j], x, expo, n_known_cols, ztmp1);
+  b[i].addmul_2exp(b[j], x, expo, b.get_cols(), ztmp1);
   if (enable_transform)
   {
     u[i].addmul_2exp(u[j], x, expo, ztmp1);
@@ -561,7 +563,7 @@ template <class ZT, class FT> void MatGSOGivens<ZT, FT>::row_swap(int i, int j)
   r.swap_rows(i,j);
 
   givens_row_reduction(i,j);
-  for(int k = i+1; k <= j; k++) {
+  for(int k = i+1; k < j; k++) {
   	givens_rotation(k,k+1,k);
   }
   compute_mu_and_r_columns(i,j);
@@ -590,8 +592,9 @@ template <class ZT, class FT> void MatGSOGivens<ZT, FT>::move_row(int old_r, int
     mu.rotate_right(new_r,old_r);
     r.rotate_right(new_r,old_r);
 
-    givens_row_reduction(new_r,old_r+1);
-    for(int k = new_r+1; k <= old_r; k++) {
+    //givens_row_reduction(new_r,old_r+1);
+    givens_row_reduction(new_r,old_r);
+    for(int k = new_r+1; k < old_r; k++) {        
   	  givens_rotation(k,k+1,k);
     }
     compute_mu_and_r_columns(new_r,old_r);
@@ -618,7 +621,7 @@ template <class ZT, class FT> void MatGSOGivens<ZT, FT>::move_row(int old_r, int
     r.rotate_left(old_r, new_r);
 
 
-    for(int k = old_r; k <= new_r-1; k++) { // Maybe change new_r - 1 to new_r 
+    for(int k = old_r; k < new_r; k++) { // Maybe change new_r - 1 to new_r 
   	  givens_rotation(k,k+1,k);
     }
     compute_mu_and_r_columns(old_r,new_r);
@@ -634,10 +637,23 @@ template <class ZT, class FT> void MatGSOGivens<ZT, FT>::size_increased()
 
       mu.resize(d, b.get_cols());
       l_givens.resize(d, b.get_cols());
-   	  r.resize(d, b.get_cols());   		
+   	  r.resize(d, b.get_cols());
+   	  bf.resize(b.get_rows(),b.get_cols());
+   	  gf.resize(b.get_rows(),b.get_rows());   		
   }
   
 }
+
+template <class ZT, class FT> void MatGSOGivens<ZT, FT>::row_op_end(int first, int last)
+{
+#ifdef DEBUG
+  FPLLL_DEBUG_CHECK(row_op_first == first && row_op_last == last);
+  row_op_first = row_op_last = -1;
+#endif
+}
+
+
+
 
 template class MatGSOGivens<Z_NR<long>, FP_NR<double>>;
 template class MatGSOGivens<Z_NR<double>, FP_NR<double>>;

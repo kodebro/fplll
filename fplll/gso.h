@@ -181,6 +181,8 @@ public:
   // b[i] <-> b[j] (i < j)
   virtual void row_swap(int i, int j);
 
+  virtual void row_op_end(int first, int last);
+
 private:
   /* Allocates matrices and arrays whose size depends on d (all but tmp_col_expo).
    When enable_int_gram=false, initializes bf. */

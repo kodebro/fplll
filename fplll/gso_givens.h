@@ -115,6 +115,7 @@ public:
   {
     //FPLLL_DEBUG_CHECK(!(enable_int_gram && enable_row_expo));
     //
+
     d = b.get_rows();
 
     // No row-exponents in Givens yet
@@ -156,6 +157,8 @@ public:
 
   virtual void move_row(int old_r, int new_r);
 
+  virtual void row_op_end(int first, int last) final;
+
   // For givens rotations
   void initialize_l_givens_matrix();
   void givens_rotation(int col_i, int col_j, int row_k);
@@ -176,6 +179,9 @@ public:
   inline bool update_gso_row(int i);
 
   inline bool update_gso();
+
+  virtual void set_r(int i, int j, FT &f);
+
   /**
    * b[i] := b[i] + x * b[j].
    * After one or several calls to row_addmul, row_op_end must be called.
@@ -264,11 +270,14 @@ template <class ZT, class FT> inline FT &MatGSOGivens<ZT, FT>::get_gram(FT &f, i
   FPLLL_DEBUG_CHECK(i >= 0 && i < n_known_rows && j >= 0 && j <= i && j < n_source_rows &&
                     !in_row_op_range(i));
 
-  	// TODO maybe delete the if-statement...
-    if (gf(i, j).is_nan())
+    // TODO this was lazy before.
+    update_bf(i);
+    if (i != j) 
     {
-      bf[i].dot_product(gf(i, j), bf[j], n_known_cols);
+      update_bf(j);
     }
+    bf[i].dot_product(gf(i, j), bf[j], b.get_cols());
+    
     f = gf(i, j);
 
   return f;
@@ -327,6 +336,13 @@ template <class ZT, class FT> inline void MatGSOGivens<ZT, FT>::remove_last_rows
   if (enable_transform)
     u.set_rows(d);
 }
+
+template <class ZT, class FT> inline void MatGSOGivens<ZT, FT>::set_r(int i, int j, FT &f)
+{
+  FPLLL_DEBUG_CHECK(i >= 0 && i < n_known_rows && j >= 0 );
+  r(i, j) = f;
+}
+
 
 FPLLL_END_NAMESPACE
 

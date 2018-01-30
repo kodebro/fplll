@@ -402,6 +402,31 @@ template <class ZT, class FT> void MatGSO<ZT, FT>::size_increased()
   }
 }
 
+template <class ZT, class FT> void MatGSO<ZT, FT>::row_op_end(int first, int last)
+{
+#ifdef DEBUG
+  FPLLL_DEBUG_CHECK(row_op_first == first && row_op_last == last);
+  row_op_first = row_op_last = -1;
+#endif
+  for (int i = first; i < last; i++)
+  {
+    if (!enable_int_gram)
+    {
+      update_bf(i);
+      invalidate_gram_row(i);
+      for (int j = i + 1; j < n_known_rows; j++)
+        gf(j, i).set_nan();
+    }
+    invalidate_gso_row(i, 0);
+  }
+  for (int i = last; i < n_known_rows; i++)
+  {
+    invalidate_gso_row(i, first);
+  }
+}
+
+
+
 template class MatGSO<Z_NR<long>, FP_NR<double>>;
 template class MatGSO<Z_NR<double>, FP_NR<double>>;
 template class MatGSO<Z_NR<mpz_t>, FP_NR<double>>;
