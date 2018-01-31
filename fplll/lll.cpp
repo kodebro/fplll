@@ -56,6 +56,8 @@ bool LLLReduction<ZT, FT>::lll(int kappa_min, int kappa_start, int kappa_end,
 
   zeros       = 0;
   n_swaps     = 0;
+  n_sizereductions = 0;
+  ops_counter = 0;
   final_kappa = 0;
   if (verbose)
     print_params();
@@ -88,6 +90,14 @@ bool LLLReduction<ZT, FT>::lll(int kappa_min, int kappa_start, int kappa_end,
         cerr << "Discovering vector " << kappa - kappa_min + 1 + zeros << "/" << d
              << " cputime=" << cputime() - start_time << endl;
       }
+ 
+
+      if (m.is_givens() && (n_swaps + n_sizereductions - ops_counter > m.recomputation_count)) {
+        ops_counter = n_swaps + n_sizereductions;
+        cerr << "Recomputing givens matrix" << endl;
+        m.recompute_givens_matrix();
+      }
+
       kappa_max = kappa;
       if (enable_early_red && is_power_of_2(kappa) && kappa > last_early_red)
       {
@@ -168,9 +178,16 @@ bool LLLReduction<ZT, FT>::babai(int kappa, int size_reduction_end, int size_red
 
   for (int iter = 0;; iter++)
   {
+    if (! m.is_givens()) {
     if (!m.update_gso_row(kappa, size_reduction_end - 1))
       return set_status(RED_GSO_FAILURE);
-
+    } //else {
+      //if (n_swaps + n_sizereductions - ops_counter > m.recomputation_count) {
+      //  ops_counter = n_swaps + n_sizereductions;
+      //  cerr << "Recomputing givens matrix" << endl;
+      //  m.recompute_givens_matrix();
+      //}
+    //}
     bool loop_needed = false;
     for (int j = size_reduction_end - 1; j >= size_reduction_start && !loop_needed; j--)
     {
@@ -210,10 +227,10 @@ bool LLLReduction<ZT, FT>::babai(int kappa, int size_reduction_end, int size_red
         babai_mu[k].sub(babai_mu[k], ftmp1);
       }
       // Operation on the basis
-      // FPLLL_TRACE("Babai : row[" << kappa << "] += " << mu_m_ant << " * 2^" << babai_expo[j] << "
-      // * row[" << j << "]");
+      //cerr << "Babai : row[" << kappa << "] += " << mu_m_ant << " * 2^" << babai_expo[j] << " row[" << j << "]" << endl;
       mu_m_ant.neg(mu_m_ant);
       m.row_addmul_we(kappa, j, mu_m_ant, babai_expo[j]);
+      n_sizereductions++;
     }
     m.row_op_end(kappa, kappa + 1);
   }

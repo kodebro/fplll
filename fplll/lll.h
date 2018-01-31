@@ -72,6 +72,8 @@ public:
   int last_early_red;
   int zeros;
   int n_swaps;
+  int n_sizereductions;
+  int ops_counter;
 
 private:
   /**

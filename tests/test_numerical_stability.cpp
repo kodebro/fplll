@@ -81,90 +81,68 @@ void test_gso_stability(int rows, int cols, int max_entry)
 
 }
 */
-int test_gso_stability(ZZ_mat<mpz_t> A)
+template<class ZT, class FT> int test_gso_stability(ZZ_mat<ZT> A)
 { 
   mpfr_set_default_prec (200);
 
 
-  ZZ_mat<mpz_t> U_double;
-  ZZ_mat<mpz_t> UT_double;
-  ZZ_mat<mpz_t> U_mpfr;
-  ZZ_mat<mpz_t> UT_mpfr;
+  //ZZ_mat<mpz_t> U_givens;
+  //ZZ_mat<mpz_t> UT_givens;
+  //ZZ_mat<mpz_t> U_double;
+  //ZZ_mat<mpz_t> UT_double;  
+  //ZZ_mat<mpz_t> U_mpfr;
+  //ZZ_mat<mpz_t> UT_mpfr;
 
-  ZZ_mat<mpz_t> B,C,A2,B2,C2,A3,B3,C3,A4,B4,C4;
+  //ZZ_mat<mpz_t> B;
+  //B.resize(A.r,A.c);
+  Matrix<Z_NR<ZT>> B, UB, UTB, U, UT;
   B.resize(A.r,A.c);
-  C.resize(A.r,A.c); 
-    B2.resize(A.r,A.c);
-  C2.resize(A.r,A.c); 
-    B3.resize(A.r,A.c);
-  C3.resize(A.r,A.c); 
-    A2.resize(A.r,A.c);
-  A3.resize(A.r,A.c);  
-  A4.resize(A.r,A.c); 
-  B4.resize(A.r,A.c);
-  C4.resize(A.r,A.c);  
+
+  Matrix<FP_NR<FT>> displayMatrix;
+  displayMatrix.resize(A.r,A.c);
+
 
   for(int i = 0; i < A.r; i++) {
     for(int j = 0; j < A.c; j++) {
-        B(i,j) = A(i,j); C(i,j) = A(i,j); B2(i,j) = A(i,j); B3(i,j) = A(i,j); C2(i,j) = A(i,j); C3(i,j) = A(i,j); A2(i,j) = A(i,j); A3(i,j) = A(i,j); B4(i,j) = A(i,j); C4(i,j) = A(i,j); A4(i,j) = A(i,j);
+        B(i,j) = A(i,j); 
     }
   }
 
-  FP_NR<mpfr_t> ftmp1, ftmp2, ftmp3;
-  FP_NR<mpfr_t> max_diff_gso, max_diff_givens, max_diff_mpfr;
+  FP_NR<FT> ftmp1, ftmp2, ftmp3;
+  FP_NR<FT> max_diff_gso, max_diff_givens, max_diff_mpfr;
 
-  MatGSO<Z_NR<mpz_t>, FP_NR<double>> M_double(A, U_double, UT_double, 0);
-  M_double.update_gso();
+  //MatGSO<Z_NR<mpz_t>, FP_NR<double>> M_double(A, U_double, UT_double, 0);
+  //M_double.update_gso();
 
-  MatGSOGivens<Z_NR<mpz_t>, FP_NR<double>> M_givens_double(B, U_double, UT_double, 0);
-  M_givens_double.update_gso();
-  
+  MatGSOGivens<Z_NR<ZT>, FP_NR<double>> M_givens(A, UB, UTB, 0);
+  MatGSO<Z_NR<ZT>, FP_NR<FT>> M_mpfr(B, U, UT, 0);
+  M_givens.recomputation_count = 1000; //00000;
 
-  MatGSO<Z_NR<mpz_t>, FP_NR<mpfr_t>> M_mpfr(C, U_mpfr, UT_mpfr, 0);
-  M_mpfr.update_gso();
-
-  int row_begin = 1;
-  int row_end = 5;
-
-  M_mpfr.row_op_begin(row_begin,row_end+1);
-  //M_mpfr.row_swap(row_begin,row_end);
-  M_mpfr.row_swap(row_end,row_begin);
-  M_mpfr.row_op_end(row_begin,row_end+1);
-
-  M_double.row_op_begin(row_begin,row_end+1);
-  //M_double.row_swap(row_begin,row_end);
-  M_double.row_swap(row_end,row_begin);
-  M_double.row_op_end(row_begin,row_end+1);
-
-  //M_givens_double.row_swap(row_begin,row_end);
-  M_givens_double.row_swap(row_end,row_begin);
 
   M_mpfr.update_gso();
-  M_double.update_gso();
-
-
-  
+  M_givens.update_gso();
 
   max_diff_gso = 0.0;
   max_diff_givens = 0.0;
   max_diff_mpfr = 0.0;
-
   int rows = A.r;
 
   for(int i = 0; i < rows; i++)
   {
     for(int j = 0; j < i; j++)
     {
-      ftmp1 = M_double.r(i,j).get_data();
-      ftmp2.sub(ftmp1, M_mpfr.r(i,j));
-      ftmp3.abs(ftmp2);
+      //ftmp1 = M_double.r(i,j).get_data();
+      //ftmp2.sub(ftmp1, M_mpfr.r(i,j));
+      //ftmp3.abs(ftmp2);
 
-      if ( ftmp3 > max_diff_gso )
-        max_diff_gso = ftmp3;
+      //if ( ftmp3 > max_diff_gso )
+      //  max_diff_gso = ftmp3;
 
-      ftmp1 = M_givens_double.r(i,j).get_data();
-      ftmp2.sub(ftmp1, M_mpfr.r(i,j));
+      ftmp1 = M_givens.mu(i,j).get_data();
+      //(M_givens.r(i,j)).get_mpfr(ftmp1);
+      ftmp2.sub(ftmp1, M_mpfr.mu(i,j));
       ftmp3.abs(ftmp2);
+      displayMatrix(i,j) = ftmp3;
 
       if ( ftmp3 > max_diff_givens )
         max_diff_givens = ftmp3;
@@ -172,69 +150,79 @@ int test_gso_stability(ZZ_mat<mpz_t> A)
 
     }
   }
+
+
   
-  cerr << "Comparing the swap-accuracy of gso and givens for a matrix of dimension " << A.c << endl;
+  cerr << "Comparing the GSO- accuracy of gso and givens for a matrix of dimension " << A.c << endl;
   cerr << "max_diff_gso    = " << max_diff_gso << " and max_diff_givens = " << max_diff_givens << endl;
-  if (max_diff_givens  > 1) { return 1; }
+  //cerr << displayMatrix << endl;
 
-  MatGSO<Z_NR<mpz_t>, FP_NR<double>> M_double2(A2, U_double, UT_double, 0);
-  M_double2.update_gso();
+  //if (max_diff_givens > 1) { return 1; }
 
-  MatGSOGivens<Z_NR<mpz_t>, FP_NR<double>> M_givens_double2(B2, U_double, UT_double, 0);
-  M_givens_double2.update_gso();
+
+
+
+
+  LLLReduction<Z_NR<ZT>, FP_NR<FT>> LLLObj(M_mpfr, LLL_DEF_DELTA, LLL_DEF_ETA, LLL_VERBOSE);
+  LLLReduction<Z_NR<ZT>, FP_NR<double>> LLLObj_givens(M_givens, LLL_DEF_DELTA, LLL_DEF_ETA, LLL_VERBOSE);
+
+
+  // and LLL reduce both objects
+  LLLObj_givens.lll();
+
+  LLLObj.lll();
+
+
+  // ------------------------------------------------
+  // ************************************************
+
+  // _________________________________________________
+  // -------------------------------------------------
+  // Check whether M and MGivens are really reduced after LLL reduction
+  int is_reduced  = is_lll_reduced<Z_NR<ZT>, FP_NR<FT>>(M_mpfr, LLL_DEF_DELTA, LLL_DEF_ETA);
+
+  MatGSO<Z_NR<ZT>, FP_NR<FT>> M2(M_givens.b, U, UT, 0);
+  M2.update_gso();
+  int is_greduced = is_lll_reduced<Z_NR<ZT>, FP_NR<FT>>(M2, LLL_DEF_DELTA, LLL_DEF_ETA);
+
+  if (is_reduced != 1 || is_greduced != 1)
+  {
+    if (is_reduced != 1)
+    {
+      cerr << "The basis GSO-object is not LLL-reduced after calling LLL\n";
+    }
+    if (is_greduced != 1)
+    {
+      cerr << "The givens GSO-object is not LLL-reduced after calling LLL\n";
+    }
+
+  }
+
+//cerr << M_mpfr.b << endl << endl;
+//cerr << M_givens.b << endl;
   
 
-  MatGSO<Z_NR<mpz_t>, FP_NR<mpfr_t>> M_mpfr2(C2, U_mpfr, UT_mpfr, 0);
-  M_mpfr2.update_gso();
-
-
-  M_mpfr2.row_op_begin(row_begin,row_end+1);
-  //M_mpfr2.row_sub(row_end,row_begin);
-  M_mpfr2.row_sub(row_begin,row_end);
-  M_mpfr2.row_op_end(row_begin,row_end+1);
-
-  M_double2.row_op_begin(row_begin,row_end+1);
-  //M_double2.row_sub(row_end,row_begin);
-  M_double2.row_sub(row_begin,row_end);
-  M_double2.row_op_end(row_begin,row_end+1);
-
-  M_givens_double2.row_sub(row_begin,row_end);
-  //M_givens_double2.row_sub(row_end,row_begin);
-
-  M_mpfr2.update_gso();
-  M_double2.update_gso();
-
-
-
-
-   /*
-   cerr << "Normal GSO" << endl;
-   M_double.print_mu_r_g(cerr);
-
-   cerr << "Givens GSO" << endl;
-   M_givens_double.print_mu_r_g(cerr);
-   */
-  
   max_diff_gso = 0.0;
   max_diff_givens = 0.0;
   max_diff_mpfr = 0.0;
-
   rows = A.r;
 
   for(int i = 0; i < rows; i++)
   {
     for(int j = 0; j < i; j++)
     {
-      ftmp1 = M_double2.r(i,j).get_data();
-      ftmp2.sub(ftmp1, M_mpfr2.r(i,j));
-      ftmp3.abs(ftmp2);
+      //ftmp1 = M_double.r(i,j).get_data();
+      //ftmp2.sub(ftmp1, M_mpfr.r(i,j));
+      //ftmp3.abs(ftmp2);
 
-      if ( ftmp3 > max_diff_gso )
-        max_diff_gso = ftmp3;
+      //if ( ftmp3 > max_diff_gso )
+      //  max_diff_gso = ftmp3;
 
-      ftmp1 = M_givens_double2.r(i,j).get_data();
-      ftmp2.sub(ftmp1, M_mpfr2.r(i,j));
+      ftmp1 = M_givens.mu(i,j).get_data();
+      //(M_givens.r(i,j)).get_mpfr(ftmp1);
+      ftmp2.sub(ftmp1, M2.mu(i,j));
       ftmp3.abs(ftmp2);
+      displayMatrix(i,j) = ftmp3;
 
       if ( ftmp3 > max_diff_givens )
         max_diff_givens = ftmp3;
@@ -243,182 +231,60 @@ int test_gso_stability(ZZ_mat<mpz_t> A)
     }
   }
   
-  cerr << "Comparing the addmul accuracy of gso and givens for a matrix of dimension " << A.c << endl;
+  cerr << "Comparing the LLL-accuracy of gso and givens for a matrix of dimension " << A.c << endl;
   cerr << "max_diff_gso    = " << max_diff_gso << " and max_diff_givens = " << max_diff_givens << endl;
-  if (max_diff_givens  > 1) { return 2; }
-
-
-  row_begin = 1; row_end = 5;
-
-
-  MatGSO<Z_NR<mpz_t>, FP_NR<double>> M_double3(A3, U_double, UT_double, 0);
-  M_double3.update_gso();
-
-  MatGSOGivens<Z_NR<mpz_t>, FP_NR<double>> M_givens_double3(B3, U_double, UT_double, 0);
-  M_givens_double3.update_gso();
-  
-
-  MatGSO<Z_NR<mpz_t>, FP_NR<mpfr_t>> M_mpfr3(C3, U_mpfr, UT_mpfr, 0);
-  M_mpfr3.update_gso();
-
-  //cerr << M_double3.b << endl << endl;
-  //cerr << M_givens_double3.b << endl << endl;
-
-
-  double mult = 10.0;
-  long exp = 0;
-
-  M_mpfr3.row_op_begin(row_begin,row_end+1);
-  M_mpfr3.row_addmul_we(row_begin,row_end,mult,exp);
-  //M_mpfr3.row_addmul_we(row_end,row_begin,mult,exp);
-  M_mpfr3.row_op_end(row_begin,row_end+1);
-
-  M_double3.row_op_begin(row_begin,row_end+1);
-  M_double3.row_addmul_we(row_begin,row_end,mult,exp);  
-  //M_double3.row_addmul_we(row_end,row_begin,mult,exp);
-  M_double3.row_op_end(row_begin,row_end+1);
-
-   M_givens_double3.row_addmul_we(row_begin,row_end,mult,exp);
-   //M_givens_double3.row_addmul_we(row_end,row_begin,mult,exp);
-
-  M_mpfr3.update_gso();
-  M_double3.update_gso();
-
-
-
-
-
-  //M_mpfr3.print_mu_r_g(cerr);
-  //M_double3.print_mu_r_g(cerr);
-  //M_givens_double3.print_mu_r_g(cerr);
-
-   /*
-   cerr << "Normal GSO" << endl;
-   M_double.print_mu_r_g(cerr);
-
-   cerr << "Givens GSO" << endl;
-   M_givens_double.print_mu_r_g(cerr);
-   */
-  
-  max_diff_gso = 0.0;
-  max_diff_givens = 0.0;
-  max_diff_mpfr = 0.0;
-
-  rows = A.r;
-
-  for(int i = 0; i < rows; i++)
-  {
-    for(int j = 0; j < i; j++)
+    if (is_greduced !=1) {     
+    for(int i = 0; i < rows; i++)
     {
-      ftmp1 = M_double3.r(i,j).get_data();
-      ftmp2.sub(ftmp1, M_mpfr3.r(i,j));
-      ftmp3.abs(ftmp2);
-
-      if ( ftmp3 > max_diff_gso )
-        max_diff_gso = ftmp3;
-
-      ftmp1 = M_givens_double3.r(i,j).get_data();
-      ftmp2.sub(ftmp1, M_mpfr3.r(i,j));
-      ftmp3.abs(ftmp2);
-
-      if ( ftmp3 > max_diff_givens )
-        max_diff_givens = ftmp3;
-
+      for(int j = 0; j < i; j++)
+      {
+        if (displayMatrix(i,j) < .1) { cerr << "0"; } else  {cerr << "x";}
+      }
+      cerr << endl;
+    }
+    cerr << endl;
+    cerr << displayMatrix << endl << endl;
+    return 1; 
 
     }
-  }
-  
-  cerr << "Comparing the addmul_we accuracy of gso and givens for a matrix of dimension " << A.c << endl;
-  cerr << "max_diff_gso    = " << max_diff_gso << " and max_diff_givens = " << max_diff_givens << endl;
-  if (max_diff_givens > 1) { return 3; }
 
-
-
-  MatGSO<Z_NR<mpz_t>, FP_NR<double>> M_double4(A4, U_double, UT_double, 0);
-  M_double4.update_gso();
-
-  MatGSOGivens<Z_NR<mpz_t>, FP_NR<double>> M_givens_double4(B4, U_double, UT_double, 0);
-  M_givens_double4.update_gso();
-  
-
-  MatGSO<Z_NR<mpz_t>, FP_NR<mpfr_t>> M_mpfr4(C4, U_mpfr, UT_mpfr, 0);
-  M_mpfr4.update_gso();
-
-  //cerr << M_double3.b << endl << endl;
-  //cerr << M_givens_double3.b << endl << endl;
-
-
-  M_mpfr4.row_op_begin(row_begin,row_end+1);
-  M_mpfr4.move_row(row_begin,row_end);  
-  //M_mpfr4.move_row(row_end,row_begin);
-  M_mpfr4.row_op_end(row_begin,row_end+1);
-
-  M_double4.row_op_begin(row_begin,row_end+1);
-  M_double4.move_row(row_begin,row_end);    
-  //M_double4.move_row(row_end,row_begin);
-  M_double4.row_op_end(row_begin,row_end+1);
-
-
-  M_givens_double4.move_row(row_begin,row_end);  
-  //M_givens_double4.move_row(row_end,row_begin);
-
-  M_mpfr4.update_gso();
-  M_double4.update_gso();
-
-
-
-
-
-
-  //M_mpfr3.print_mu_r_g(cerr);
-  //M_double3.print_mu_r_g(cerr);
-  //M_givens_double3.print_mu_r_g(cerr);
-
-   /*
-   cerr << "Normal GSO" << endl;
-   M_double.print_mu_r_g(cerr);
-
-   cerr << "Givens GSO" << endl;
-   M_givens_double.print_mu_r_g(cerr);
-   */
-  
-  max_diff_gso = 0.0;
-  max_diff_givens = 0.0;
-  max_diff_mpfr = 0.0;
-
-  rows = A.r;
-
-  for(int i = 0; i < rows; i++)
-  {
-    for(int j = 0; j < i; j++)
+  if (max_diff_givens > 1) { 
+    for(int i = 0; i < rows; i++)
     {
-      ftmp1 = M_double4.r(i,j).get_data();
-      ftmp2.sub(ftmp1, M_mpfr4.r(i,j));
-      ftmp3.abs(ftmp2);
-
-      if ( ftmp3 > max_diff_gso )
-        max_diff_gso = ftmp3;
-
-      ftmp1 = M_givens_double4.r(i,j).get_data();
-      ftmp2.sub(ftmp1, M_mpfr4.r(i,j));
-      ftmp3.abs(ftmp2);
-
-      if ( ftmp3 > max_diff_givens )
-        max_diff_givens = ftmp3;
-
-
+      for(int j = 0; j < i; j++)
+      {
+        if (displayMatrix(i,j) < .001) { cerr << "0"; } else  {cerr << "x";}
+      }
+      cerr << endl;
     }
-  }
-  
-  cerr << "Comparing the move_row accuracy of gso and givens for a matrix of dimension " << A.c << endl;
-  cerr << "max_diff_gso    = " << max_diff_gso << " and max_diff_givens = " << max_diff_givens << endl;
-  if (max_diff_givens > 1) { return 4; }
-
+    cerr << endl;
+    return 0; }
+  //if (max_diff_givens  > 1) { return 1; }
 
   return 0;
-
 }
 
+
+template <class ZT, class FT> int test_filename(const char *input_filename)
+{
+  ZZ_mat<ZT> A;
+  int status = read_matrix(A, input_filename);
+  // if status == 1, read_matrix fails.
+  if (status == 1)
+  {
+    return 1;
+  }
+  int retvalue = test_gso_stability<ZT, FT>(A);
+  return retvalue;
+}
+
+template <class ZT, class FT> int test_int_rel(int d, int b)
+{
+  ZZ_mat<ZT> A;
+  A.resize(d, d + 1);
+  A.gen_intrel(b);
+  return test_gso_stability<ZT, FT>(A);
+}
 
 int main(int /*argc*/, char ** /*argv*/)
 {
@@ -427,16 +293,18 @@ int main(int /*argc*/, char ** /*argv*/)
 
 /*
   srand(1);
-  int max_entry = 10;
-  for (int k = 20; k < 30; k+=5) { 
+  int max_entry = 1000000000;
+  for (int k = 200; k < 300; k+=20) { 
     A.resize(k,k);
     for (int i = 0; i < k; i++)
       for (int j = 0; j < k; j++)
         A(i, j) = (rand()%(max_entry*2)) - max_entry;
-    status += test_gso_stability(A);
+    status += test_gso_stability<mpz_t, mpfr_t>(A);
   }
-*/
+  */
+ // status |= test_int_rel<mpz_t, double>(90, 10);
 
+/*
   srand(1);
   int max_entry = 10;
   for (int k = 100; k < 300; k+=50) { 
@@ -444,10 +312,10 @@ int main(int /*argc*/, char ** /*argv*/)
     for (int i = 0; i < k; i++)
       for (int j = 0; j < k; j++)
         A(i, j) = (rand()%(max_entry*2)) - max_entry;
-    status += test_gso_stability(A);
+    status += test_gso_stability<mpz_t, mpfr_t>(A);
   }
 
-
+*/
 
 
   /*for (int i = 4; i < 10; i++) { 
@@ -456,8 +324,15 @@ int main(int /*argc*/, char ** /*argv*/)
     test_gso_stability(A);
   } */ 
 
+  status |= test_filename<mpz_t, double>(TESTDATADIR "/tests/lattices/example2_in");
+  status |= test_filename<mpz_t, double>(TESTDATADIR "/tests/lattices/example_cvp_in_lattice");
+  status |= test_filename<mpz_t, double>(TESTDATADIR "/tests/lattices/example_cvp_in_lattice2");
+  status |= test_filename<mpz_t, double>(TESTDATADIR "/tests/lattices/example_cvp_in_lattice3");
+  status |= test_filename<mpz_t, double>(TESTDATADIR "/tests/lattices/example_cvp_in_lattice4");
+  status |= test_filename<mpz_t, double>(TESTDATADIR "/tests/lattices/example_cvp_in_lattice5");
+  status |= test_int_rel<mpz_t, double>(50, 20);
+  status |= test_int_rel<mpz_t, double>(40, 10);
 
-/*
   status |= test_filename<mpz_t, mpfr_t>(TESTDATADIR "/tests/lattices/example2_in");
   status |= test_filename<mpz_t, mpfr_t>(TESTDATADIR "/tests/lattices/example_cvp_in_lattice");
   status |= test_filename<mpz_t, mpfr_t>(TESTDATADIR "/tests/lattices/example_cvp_in_lattice2");
@@ -466,6 +341,8 @@ int main(int /*argc*/, char ** /*argv*/)
   status |= test_filename<mpz_t, mpfr_t>(TESTDATADIR "/tests/lattices/example_cvp_in_lattice5");
   status |= test_int_rel<mpz_t, mpfr_t>(50, 20);
   status |= test_int_rel<mpz_t, mpfr_t>(40, 10);
+  
+
 
 #ifdef FPLLL_WITH_LONG_DOUBLE
   status |= test_filename<mpz_t, long double>(TESTDATADIR "/tests/lattices/example2_in");
@@ -510,7 +387,7 @@ int main(int /*argc*/, char ** /*argv*/)
   status |= test_int_rel<mpz_t, dpe_t>(50, 20);
   status |= test_int_rel<mpz_t, dpe_t>(40, 10);
 #endif
-*/
+
   if (status == 0)
   {
     cerr << "All tests passed." << endl;

@@ -38,7 +38,7 @@ public:
   using MatGSOInterface<ZT, FT>::u;
   using MatGSOInterface<ZT, FT>::enable_transform;
   using MatGSOInterface<ZT, FT>::cols_locked;  // maybe scratch.
-
+  using MatGSOInterface<ZT, FT>::recomputation_count;
   using MatGSOInterface<ZT, FT>::gso_valid_cols;
   using MatGSOInterface<ZT, FT>::enable_inverse_transform;
   using MatGSOInterface<ZT, FT>::u_inv_t;
@@ -117,7 +117,7 @@ public:
     //
 
     d = b.get_rows();
-
+    recomputation_count = 300;
     // No row-exponents in Givens yet
     /*
     if (enable_row_expo)
@@ -166,6 +166,9 @@ public:
   void clean_mu();
 
   void compute_mu_and_r_columns(int starting_column, int last_column);
+
+  virtual void recompute_givens_matrix();
+
   inline void compute_mu_and_r_column(int column);
 
   /**
@@ -179,6 +182,8 @@ public:
   inline bool update_gso_row(int i);
 
   inline bool update_gso();
+
+  virtual inline bool is_givens();
 
   virtual void set_r(int i, int j, FT &f);
 
@@ -282,6 +287,12 @@ template <class ZT, class FT> inline FT &MatGSOGivens<ZT, FT>::get_gram(FT &f, i
 
   return f;
 }
+
+
+template <class ZT, class FT> inline bool MatGSOGivens<ZT,FT>::is_givens(){
+  return true;
+}
+
 
 template <class ZT, class FT> inline void MatGSOGivens<ZT, FT>::create_rows(int n_new_rows)
 {

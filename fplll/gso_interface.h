@@ -110,6 +110,8 @@ public:
    */
   int d;
 
+
+  int recomputation_count = 0;
   /**
    * Basis of the lattice
    */
@@ -437,6 +439,9 @@ public:
    */
   inline void print_mu_r_g(ostream &os);
 
+  virtual inline bool is_givens();
+  virtual void recompute_givens_matrix();
+
   /** Exact computation of dot products (i.e. with type ZT instead of FT) */
   const bool enable_int_gram;
 
@@ -580,6 +585,16 @@ protected:
   bool in_row_op_range(int i) { return i >= row_op_first && i < row_op_last; }
 #endif
 };
+
+template <class ZT, class FT> inline bool MatGSOInterface<ZT,FT>::is_givens()
+{
+  return false;
+}
+template <class ZT, class FT> inline void MatGSOInterface<ZT,FT>::recompute_givens_matrix()
+{
+
+}
+
 
 template <class ZT, class FT> inline MatGSOInterface<ZT, FT>::~MatGSOInterface()
 {

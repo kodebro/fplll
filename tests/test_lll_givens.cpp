@@ -122,7 +122,10 @@ template <class ZT, class FT> int test_lll(ZZ_mat<ZT> &A)
   // -------------------------------------------------
   // Check whether M and MGivens are really reduced after LLL reduction
   int is_reduced  = is_lll_reduced<Z_NR<ZT>, FP_NR<FT>>(M, LLL_DEF_DELTA, LLL_DEF_ETA);
-  int is_greduced = is_lll_reduced<Z_NR<ZT>, FP_NR<FT>>(MGivens, LLL_DEF_DELTA, LLL_DEF_ETA);
+
+
+  MatGSO<Z_NR<ZT>, FP_NR<FT>> M2(MGivens.b, U, UT, 1);
+  int is_greduced = is_lll_reduced<Z_NR<ZT>, FP_NR<FT>>(M2, LLL_DEF_DELTA, LLL_DEF_ETA);
 
   if (is_reduced != 1 || is_greduced != 1)
   {
@@ -201,6 +204,8 @@ int main(int /*argc*/, char ** /*argv*/)
   status |= test_int_rel<mpz_t, double>(50, 20);
   status |= test_int_rel<mpz_t, double>(40, 10);
 
+  status |= test_int_rel<mpz_t, double>(250,20);
+
   status |= test_filename<mpz_t, mpfr_t>(TESTDATADIR "/tests/lattices/example2_in");
   status |= test_filename<mpz_t, mpfr_t>(TESTDATADIR "/tests/lattices/example_cvp_in_lattice");
   status |= test_filename<mpz_t, mpfr_t>(TESTDATADIR "/tests/lattices/example_cvp_in_lattice2");
@@ -257,7 +262,7 @@ int main(int /*argc*/, char ** /*argv*/)
   status |= test_int_rel<mpz_t, dpe_t>(40, 10);
 
 #endif
-  
+
   if (status == 0)
   {
     cerr << "All tests passed." << endl;
