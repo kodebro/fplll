@@ -200,9 +200,9 @@ public:
   // For givens rotations
   void copy_b_to_l_givens(int row);
   void apply_givens_operations(int row);
-  void apply_givens_operations(int row_start, int row_end);
+  //void apply_givens_operations(int row_start, int row_end);
 
-  void triangularize(int row_start, int row_end);
+  //void triangularize(int row_start, int row_end);
 
   void givens_row(int row);
   void givens_row(int row, int rightmost_nonzero_entry);

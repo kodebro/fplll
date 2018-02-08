@@ -178,6 +178,8 @@ template <class ZT, class FT> void MatGSOGivens<ZT,FT>::apply_givens_operations(
 
 }
 
+
+/*
 template <class ZT, class FT> void MatGSOGivens<ZT,FT>::apply_givens_operations(int start_row, int end_row){
         FT tempvar,tempvar2;
     for(int i = 0; i < start_row; i++) {
@@ -199,7 +201,8 @@ template <class ZT, class FT> void MatGSOGivens<ZT,FT>::apply_givens_operations(
 
 
 }
-
+*/
+/*
 template <class ZT, class FT> void MatGSOGivens<ZT,FT>::triangularize(int start_row, int end_row){
         FT tempvar,tempvar2,c,s;
 
@@ -232,7 +235,7 @@ template <class ZT, class FT> void MatGSOGivens<ZT,FT>::triangularize(int start_
     }
 
 }
-
+*/
 
 
 
@@ -241,9 +244,9 @@ template <class ZT, class FT> bool MatGSOGivens<ZT, FT>::update_gso_row(int row,
 {
   if (is_currently_lazy){
     is_currently_lazy = false;
-    //for(int i = lazy_row_start; i < row; i++)
-    //  update_gso_row(i);
-    
+    for(int i = lazy_row_start; i < row; i++)
+      update_gso_row(i);
+    /*
     for(int i = lazy_row_start; i < row; i++)
       copy_b_to_l_givens(i);
     apply_givens_operations(lazy_row_start, row);
@@ -256,7 +259,7 @@ template <class ZT, class FT> bool MatGSOGivens<ZT, FT>::update_gso_row(int row,
     }
 
     //triangularize(lazy_row_start,row);
-    //
+    */
     lazy_row_start = d;
   }
 
