@@ -110,7 +110,11 @@ bool LLLReduction<ZT, FT>::lll(int kappa_min, int kappa_start, int kappa_end,
     m.get_gram(lovasz_tests[0], kappa, kappa);
     for (int i = 1; i <= kappa; i++)
     {
-      ftmp1.mul(m.get_mu_exp(kappa, i - 1), m.get_r_exp(kappa, i - 1));
+      if (!m.is_givens()) { 
+        ftmp1.mul(m.get_mu_exp(kappa, i - 1), m.get_r_exp(kappa, i - 1));
+      } else { 
+        ftmp1.mul(m.get_l_exp(kappa, i - 1), m.get_l_exp(kappa, i - 1));  
+      }
       lovasz_tests[i].sub(lovasz_tests[i - 1], ftmp1);
     }
     ftmp1.mul(m.get_r_exp(kappa - 1, kappa - 1), swap_threshold);

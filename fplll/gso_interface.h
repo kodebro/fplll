@@ -115,6 +115,8 @@ public:
    */
   // Matrix<ZT> &b;
 
+  virtual inline Matrix<ZT> &get_basis();
+
   /**
    * The next five functions make calls
    * from lll.cpp and bkz.cpp indirect.
@@ -166,7 +168,8 @@ public:
    * Must be called after a sequence of row_addmul(_we). This invalidates the
    * i-th line of the GSO.
    */
-  void row_op_end(int first, int last);
+  //virtual 
+  virtual void row_op_end(int first, int last);
 
   /**
    * Returns Gram matrix coefficients (0 &lt;= i &lt; n_known_rows and
@@ -217,16 +220,15 @@ public:
    * The returned value is a reference to the coefficient of the internal
    * matrix, which may change if the matrix is modified.
    */
-  inline const FT &get_mu_exp(int i, int j, long &expo);
-  inline const FT &get_mu_exp(int i, int j);
+  virtual inline const FT &get_mu_exp(int i, int j, long &expo);
+  virtual inline const FT &get_mu_exp(int i, int j);
 
   /**
    * Returns f = (b_i, b*_j) / ||b*_j||^2.
    *
    * Returns reference to `f`.
    */
-  inline FT &get_mu(FT &f, int i, int j);
-
+  virtual inline FT &get_mu(FT &f, int i, int j);
   /**
    * Return maximum bstar_i for all i
    */
@@ -245,6 +247,13 @@ public:
    * The returned value is a reference to the coefficient of the internal
    * matrix, which may change if the matrix is modified
    */
+
+
+  virtual inline const FT &get_l_exp(int i, int j, long &expo);
+  virtual inline const FT &get_l_exp(int i, int j);
+  virtual inline FT &get_l(FT &f, int i, int j);
+
+
   inline const FT &get_r_exp(int i, int j, long &expo);
   inline const FT &get_r_exp(int i, int j);
 
@@ -267,7 +276,7 @@ public:
    * [0, min(last_j, i - 1)] must be valid.
    * If i=n_known_rows, n_known_rows is increased by one.
    */
-  bool update_gso_row(int i, int last_j);
+  virtual bool update_gso_row(int i, int last_j);
 
   /**
    * Updates r(i, j) and mu(i, j) if needed for all j.
@@ -275,12 +284,12 @@ public:
    * [0, min(last_j, i - 1)] must be valid.
    * If i=n_known_rows, n_known_rows is increased by one.
    */
-  inline bool update_gso_row(int i);
+  virtual inline bool update_gso_row(int i);
 
   /**
    * Updates all GSO coefficients (mu and r).
    */
-  inline bool update_gso();
+  virtual inline bool update_gso();
 
   /**
    * Allows row_addmul(_we) for all rows even if the GSO has never been computed.
@@ -292,7 +301,7 @@ public:
    * are computed by the algorithm. They are set directly to avoid double
    * computation.
    */
-  void set_r(int i, int j, FT &f);
+  virtual void set_r(int i, int j, FT &f);
 
   /**
    * Row old_r becomes row new_r and intermediate rows are shifted.
@@ -435,6 +444,9 @@ public:
    *
    */
   inline void print_mu_r_g(ostream &os);
+
+  virtual inline bool is_givens();
+  virtual void recompute_givens_matrix();
 
   /** Exact computation of dot products (i.e. with type ZT instead of FT) */
   const bool enable_int_gram;
@@ -580,6 +592,16 @@ protected:
 #endif
 };
 
+template <class ZT, class FT> inline bool MatGSOInterface<ZT,FT>::is_givens()
+{
+  return false;
+}
+template <class ZT, class FT> inline void MatGSOInterface<ZT,FT>::recompute_givens_matrix()
+{
+
+}
+
+
 template <class ZT, class FT> inline MatGSOInterface<ZT, FT>::~MatGSOInterface()
 {
   // delete gptr;
@@ -654,6 +676,24 @@ template <class ZT, class FT> inline FT &MatGSOInterface<ZT, FT>::get_mu(FT &f, 
   if (enable_row_expo)
     f.mul_2si(f, row_expo[i] - row_expo[j]);
   return f;
+}
+
+template <class ZT, class FT> inline FT &MatGSOInterface<ZT, FT>::get_l(FT &f, int i, int j)
+{
+  return ftmp2;
+}
+
+
+template <class ZT, class FT>
+inline const FT &MatGSOInterface<ZT, FT>::get_l_exp(int i, int j, long &expo)
+{
+  expo = 0;
+  return ftmp2;
+}
+
+template <class ZT, class FT> inline const FT &MatGSOInterface<ZT, FT>::get_l_exp(int i, int j)
+{
+  return ftmp2;
 }
 
 template <class ZT, class FT>
@@ -812,6 +852,11 @@ inline void MatGSOInterface<ZT, FT>::dump_r_d(vector<double> &r, int offset, int
     get_r(e, offset + i, offset + i);
     r.push_back(e.get_d());
   }
+}
+
+template <class ZT, class FT> inline Matrix<ZT> &MatGSOInterface<ZT, FT>::get_basis() {
+  throw std::runtime_error("Trying to access basis from a GramGSO object.");
+  return u; // returned any ZT-matrix that's available.
 }
 
 FPLLL_END_NAMESPACE
