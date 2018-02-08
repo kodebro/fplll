@@ -670,6 +670,10 @@ template <class ZT, class FT> void MatGSOGivens<ZT, FT>::move_row(int old_r, int
 
     }
 
+
+
+    // HALF LAZY APPROACH
+    /*
     if (!is_currently_lazy ) {
     	is_currently_lazy = true;
     	full_column_givens_row(new_r,old_r);
@@ -677,22 +681,17 @@ template <class ZT, class FT> void MatGSOGivens<ZT, FT>::move_row(int old_r, int
     	lazy_row_start = new_r;
 
    	} else {
-      //recompute_givens_matrix(new_r,n_known_rows-1);
-
-
-      /*for(int i = new_r; i < n_known_rows; i++) {
-        copy_b_to_l_givens(i);
-        apply_givens_operations(i);
-        givens_row(i);
-      }*/
-      //for(int i = new_r; i < n_known_rows; i++)
-      //  full_column_givens_row(i, l_givens.get_cols()-1);
-
 
    		recompute_givens_matrix(min(lazy_row_start,new_r),n_known_rows-1);
-   		//recompute_givens_matrix(new_r,n_known_rows-1);
    		is_currently_lazy = false;
    	}
+    */
+
+    // FULL LAZY APPROACH
+    is_currently_lazy = true;
+      full_column_givens_row(new_r,old_r);
+      compute_mu_and_r_columns(new_r,old_r);
+      lazy_row_start = min(new_r,lazy_row_start);
 
 
 
