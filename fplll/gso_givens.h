@@ -134,7 +134,7 @@ public:
     }
     */
     size_increased();
-
+    lazy_row_start = d;
 
     //initialize_l_givens_matrix();
 

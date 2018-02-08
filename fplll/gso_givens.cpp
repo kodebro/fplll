@@ -191,6 +191,7 @@ template <class ZT, class FT> bool MatGSOGivens<ZT, FT>::update_gso_row(int row,
     is_currently_lazy = false;
     for(int i = lazy_row_start; i < row; i++)
       update_gso_row(i);
+    lazy_row_start = d;
   }
 
 
