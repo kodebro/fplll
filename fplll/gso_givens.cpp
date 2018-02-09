@@ -237,70 +237,59 @@ template <class ZT, class FT> void MatGSOGivens<ZT,FT>::triangularize(int start_
 }
 */
 
+template <class ZT, class FT> bool MatGSOGivens<ZT, FT>::real_update_gso_row(int row)
+{
+          // copies b[row] to l_givens[row]
+         copy_b_to_l_givens(row);
 
+         // applies all previous givens operations to l_givens[row]
+         apply_givens_operations(row);
 
+         // givens-reduces l_givens[row], and stores (c,s) values in the ops-matrices
+         givens_row(row);
+
+         // computes mu and r. 
+         // TODO to make lazy!!!
+         compute_mu_and_r(row);
+
+         // Discover the new row.
+        if (row >= n_known_rows)
+        {
+          discover_row();
+        }
+        return true;
+}
 
 template <class ZT, class FT> bool MatGSOGivens<ZT, FT>::update_gso_row(int row, int last_j)
 {
-  if (is_currently_lazy){
-    is_currently_lazy = false;
-    for(int i = lazy_row_start; i < row; i++)
-      update_gso_row(i);
-    /*
-    for(int i = lazy_row_start; i < row; i++)
-      copy_b_to_l_givens(i);
-    apply_givens_operations(lazy_row_start, row);
-    triangularize(lazy_row_start,row);
-    //cerr << lazy_row_start << " " << row << endl;
-    //cerr << l_givens << endl << endl;
-    for(int i = lazy_row_start; i < row; i++) {
-      //givens_row(i);
-      compute_mu_and_r(i);
-    }
 
-    //triangularize(lazy_row_start,row);
-    */
-    lazy_row_start = d;
+  if (full_lazy) {
+    if (n_known_rows < d) {  // Only the first time the full GSO is computed
+      for(int i = n_known_rows; i < d; i++)
+        real_update_gso_row(i); 
+    }    
+    return true; // Rest of the time, do NO recomputation.
   }
 
-
-    // copies b[row] to l_givens[row]
-   copy_b_to_l_givens(row);
-
-   // applies all previous givens operations to l_givens[row]
-   apply_givens_operations(row);
-
-   // givens-reduces l_givens[row], and stores (c,s) values in the ops-matrices
-   givens_row(row);
-
-   // computes mu and r. 
-   // TODO to make lazy!!!
-   compute_mu_and_r(row);
-
-   // Discover the new row.
-  if (row >= n_known_rows)
-  {
-    discover_row();
+  if (move_lazy) {
+    // If you did 'move´ lazy, the Givens-operations of earlier rows need to be recomputed...!
+    for(int i = lazy_row_start; i < row; i++)
+        real_update_gso_row(i);  
+    lazy_row_start = d;  
   }
 
-  return true;
+  return real_update_gso_row(row);
 }
+
 
 
 
 template <class ZT, class FT> void MatGSOGivens<ZT, FT>::recompute_givens_matrix(int start_row, int last_row)
 {
-
-
-
-
-
-
-// OLD VERSION
-/*  for(int i = start_row; i <= last_row; i++) {
-    update_gso_row(i);
+  for(int i = start_row; i < last_row; i++) {
+    real_update_gso_row(i);
   }
-*/
+
 }
 
 
@@ -748,34 +737,21 @@ template <class ZT, class FT> void MatGSOGivens<ZT, FT>::move_row(int old_r, int
     }
 
 
-
-    // HALF LAZY APPROACH
-    /*
-    if (!is_currently_lazy ) {
-    	is_currently_lazy = true;
-    	full_column_givens_row(new_r,old_r);
-    	compute_mu_and_r_columns(new_r,old_r);
-    	lazy_row_start = new_r;
-
-   	} else {
-
-   		recompute_givens_matrix(min(lazy_row_start,new_r),n_known_rows-1);
-   		is_currently_lazy = false;
-   	}
-    */
-
-    // FULL LAZY APPROACH
-    is_currently_lazy = true;
+    if (move_lazy) {
       full_column_givens_row(new_r,old_r);
       compute_mu_and_r_columns(new_r,old_r);
       lazy_row_start = min(new_r,lazy_row_start);
+    } else {
+      recompute_givens_matrix(new_r,n_known_rows);      
+
+    }
 
 
 
   }
   else if (new_r > old_r)
   {
-  	throw std::runtime_error("Wrong order of rotation!");
+  	//throw std::runtime_error("Wrong order of rotation!");
 
     b.rotate_left(old_r, new_r);
     if (enable_transform)
@@ -795,7 +771,17 @@ template <class ZT, class FT> void MatGSOGivens<ZT, FT>::move_row(int old_r, int
       rotate(row_expo.begin() + old_r, row_expo.begin() + old_r + 1, row_expo.begin() + new_r + 1);
     }
 
-    //int z = min(new_r,n_known_rows);
+    if (move_lazy) {
+      for(int i = old_r; i < new_r; i++)
+        full_column_givens_row(i,i+1);
+
+      compute_mu_and_r_columns(old_r,new_r);
+      lazy_row_start = min(old_r,lazy_row_start);
+
+    } else {
+      recompute_givens_matrix(old_r,n_known_rows);      
+    }
+
   }
 
     if (new_r >= n_known_rows)

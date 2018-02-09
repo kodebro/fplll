@@ -48,7 +48,7 @@ template<class ZT, class FT> int benchmark(Matrix<ZT> A)
   }
 
   MatGSO<ZT, FT> M(A, U, UT, GSO_ROW_EXPO);
-  MatGSOGivens<ZT, FT> M_givens(B, U, UT,  GSO_ROW_EXPO);
+  MatGSOGivens<ZT, FT> M_givens(B, U, UT,  GSO_ROW_EXPO );
   LLLReduction<ZT, FT> LLLObj(M, LLL_DEF_DELTA, LLL_DEF_ETA, LLL_VERBOSE);  
   LLLReduction<ZT, FT> LLLObj_givens(M_givens, LLL_DEF_DELTA, LLL_DEF_ETA, LLL_VERBOSE);
 

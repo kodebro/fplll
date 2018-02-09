@@ -117,7 +117,10 @@ public:
    *   See the documentation of row_addmul.
    */
   MatGSOGivens(Matrix<ZT> &arg_b, Matrix<ZT> &arg_u, Matrix<ZT> &arg_uinv_t, int flags)
-      : MatGSOInterface<ZT, FT>(arg_u, arg_uinv_t, flags), b(arg_b), always_recompute(flags & (1<<10))
+      : MatGSOInterface<ZT, FT>(arg_u, arg_uinv_t, flags), b(arg_b), full_lazy(flags & GSO_GIVENS_FULL_LAZY), 
+       move_lazy(flags & (GSO_GIVENS_MOVE_LAZY | GSO_GIVENS_FULL_LAZY)), // also be move-lazy when you are full-lazy
+       always_recompute(flags & GSO_GIVENS_RECOMPUTE_AFTER_SIZERED)
+
   {
     //FPLLL_DEBUG_CHECK(!(enable_int_gram && enable_row_expo));
     //
@@ -145,21 +148,22 @@ public:
   }
 
 public:
+
+
+  bool is_currently_lazy = false;
+  int lazy_row_start;
+
   /**
    * Basis of the lattice
    */
-  //Matrix<FT> lazy_row_c;
-  //Matrix<FT> lazy_row_s;  
-  //int lazy_row_position = 0;
-  bool is_currently_lazy = false;
-  int lazy_row_start;
-  int lazy_row_end;
-  //int end_lazy_row = 0;
-  //int start_lazy_row = 0;
-
-
 
   Matrix<ZT> &b;
+  bool full_lazy;  
+  bool move_lazy;
+
+  bool always_recompute;  
+
+
 
   Matrix<FT> l_givens;
   //Matrix<FT> r_givens;
@@ -168,7 +172,8 @@ public:
   Matrix<FT> ops_c;
   Matrix<FT> ops_s;
 
-  bool always_recompute;
+
+
   //long int ops_counter;
 
   virtual inline const FT &get_l_exp(int i, int j, long &expo) final;
@@ -236,6 +241,8 @@ public:
    * [0, min(last_j, i - 1)] must be valid.
    * If i=n_known_rows, n_known_rows is increased by one.
    */
+  bool real_update_gso_row(int i);
+
   virtual bool update_gso_row(int i, int last_j) final;
 
   virtual inline bool update_gso_row(int i) final;
@@ -420,10 +427,7 @@ template <class ZT, class FT> inline bool MatGSOGivens<ZT, FT>::update_gso_row(i
 
 template <class ZT, class FT> inline bool MatGSOGivens<ZT, FT>::update_gso()
 {
-  /*if (always_recompute) {
-    recompute_givens_matrix();
-  }
-  */
+
     for (int i = 0; i < d; i++)
     {
       if (!update_gso_row(i))

@@ -88,7 +88,7 @@ template <class ZT, class FT> int test_lll(ZZ_mat<ZT> &A)
   
   MatGSO<Z_NR<ZT>, FP_NR<FT>> M(A, U, UT, 0);
   //M.update_gso();
-  MatGSOGivens<Z_NR<ZT>, FP_NR<FT>> MGivens(A2, U, UT, 0&GSO_ROW_EXPO);
+  MatGSOGivens<Z_NR<ZT>, FP_NR<FT>> MGivens(A2, U, UT, GSO_GIVENS_FULL_LAZY);
   //MGivens.update_gso();
 
   // ------------------------------------------------
